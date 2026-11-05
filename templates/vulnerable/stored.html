@@ -1,0 +1,19 @@
+<!doctype html>
+{# !!! INTENTIONALLY VULNERABLE TEMPLATE - served only with a CSP "sandbox" header !!! #}
+<html lang="en"><head><meta charset="utf-8"><title>Vulnerable stored output</title>
+<style>
+  body{margin:0;padding:12px;font:14px/1.5 system-ui,sans-serif;background:#fff7f7;color:#1f2937}
+  .warn{font:700 10px/1 monospace;letter-spacing:.06em;color:#b91c1c;margin-bottom:8px}
+  ul{list-style:none;margin:0;padding:0} li{border-bottom:1px solid #fecaca;padding:6px 0}
+  small{color:#6b7280}
+</style></head>
+<body>
+  <div class="warn">SANDBOX · UNSAFE RENDERING · OPAQUE ORIGIN</div>
+  <ul>
+  {% for c in comments %}
+    <li><small>{{ c.username }} · {{ c.created_at }}</small><div>{{ c.comment_content|safe }}</div></li>
+  {% else %}
+    <li><small>No comments yet.</small></li>
+  {% endfor %}
+  </ul>
+</body></html>

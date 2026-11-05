@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block heading %}Authentication{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <span class="label-secure">SECURE IMPLEMENTATION</span>
+    <h1>Create an account</h1>
+    <p class="muted">Use a fictional username. Do not reuse a real password.</p>
+    <form method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="username">Username</label>
+      <input class="input" id="username" name="username" value="{{ username }}" maxlength="30"
+             pattern="[A-Za-z0-9_]{3,30}" required autocomplete="username">
+      <span class="hint">3&ndash;30 characters: letters, digits, underscore.</span>
+      <label for="password">Password</label>
+      <input class="input" id="password" name="password" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+      <span class="hint">At least 8 characters, including a letter and a digit.</span>
+      <label for="confirm">Confirm password</label>
+      <input class="input" id="confirm" name="confirm" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+      <button class="btn btn-primary btn-block" type="submit">Register</button>
+    </form>
+    <p class="muted small">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a>.</p>
+  </div>
+  <div class="card auth-side">
+    <h2>What happens on the server</h2>
+    <ol class="steps">
+      <li><strong>Validation</strong> &mdash; the server re-checks username format and password strength (the HTML
+        <code>pattern</code> attribute can be bypassed).</li>
+      <li><strong>Hashing</strong> &mdash; <code>generate_password_hash()</code> creates a salted scrypt hash.</li>
+      <li><strong>Parameterised INSERT</strong> &mdash;
+        <code>INSERT INTO users (username, password_hash) VALUES (?, ?)</code></li>
+      <li><strong>Constraint</strong> &mdash; the <code>UNIQUE</code> constraint on <code>username</code> rejects duplicates at the database layer.</li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

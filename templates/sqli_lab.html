@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}SQL Injection Lab{% endblock %}
+{% block heading %}SQL Injection Laboratory{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Module C · SQL Injection</span>
+  <h1>Login bypass: string concatenation vs. parameterised queries</h1>
+  <p class="lead">SQL Injection happens when user input is copied into the <em>text</em> of a SQL statement. Characters such as
+    <code>'</code> and <code>--</code> then stop being data and become SQL syntax, letting the attacker rewrite the query.
+    Below, the same input is sent to two login implementations. Both query an <strong>isolated in-memory test database</strong>
+    containing only fictional accounts; the main WebShield database is never touched.</p>
+</section>
+
+<section class="grid grid-2">
+  <article class="card panel-bad">
+    <span class="label-vuln">INTENTIONALLY VULNERABLE</span>
+    <h2>Unsafe SQL construction</h2>
+    <pre class="code code-bad">query = (
+  "SELECT id, username, role FROM lab_users "
+  "WHERE username = '" + username + "' "
+  "AND password_hash = '" + sha256(password) + "'"
+)
+conn.execute(query)</pre>
+    <p class="muted small">The input becomes part of the SQL code. File: <code>vulnerable/sqli_sandbox.py</code></p>
+  </article>
+  <article class="card panel-good">
+    <span class="label-secure">SECURE IMPLEMENTATION</span>
+    <h2>Parameterised SQL</h2>
+    <pre class="code code-good">query = (
+  "SELECT id, username, role FROM lab_users "
+  "WHERE username = ? AND password_hash = ?"
+)
+conn.execute(query, (username, sha256(password)))</pre>
+    <p class="muted small">The SQL text is fixed; values are sent separately as data.</p>
+  </article>
+</section>
+
+<section class="grid grid-lab">
+  <article class="card">
+    <h2>Try it</h2>
+    <form method="post" id="sqli-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="lab-username">Username</label>
+      <input class="input mono" id="lab-username" name="username" maxlength="200" value="{{ result.username if result else '' }}" autocomplete="off" spellcheck="false">
+      <label for="lab-password">Password</label>
+      <input class="input mono" id="lab-password" name="password" maxlength="200" autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary btn-block" type="submit">Run against both implementations</button>
+    </form>
+    <h3 class="mt">Safe demonstration inputs</h3>
+    <div class="examples">
+      {% for label, u, p in examples %}
+        <button type="button" class="example" data-fill-username="{{ u }}" data-fill-password="{{ p }}">
+          <strong>{{ label }}</strong><code>{{ u }}</code>
+        </button>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="card">
+    <h2>Fictional test accounts</h2>
+    <p class="muted small">These exist only in the in-memory lab database (stored as hashes, rebuilt for every request).</p>
+    <table class="table">
+      <thead><tr><th>Username</th><th>Password</th><th>Role</th></tr></thead>
+      <tbody>
+        {% for u, p, r in accounts %}<tr><td><code>{{ u }}</code></td><td><code>{{ p }}</code></td><td>{{ r }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>Sandbox limits:</strong> read-only (SQLite authorizer allows SELECT only), single statement,
+      query time limit, max 200 characters per field, and only generic error messages are shown.
+    </div>
+  </article>
+</section>
+
+{% if result %}
+<section class="card" id="results">
+  <div class="card-head">
+    <h2>Results</h2>
+    {% if result.bypass %}
+      <span class="badge badge-exploited">INJECTION SUCCEEDED ON VULNERABLE VERSION</span>
+    {% elif result.indicators %}
+      <span class="badge badge-detected">SUSPICIOUS INPUT DETECTED</span>
+    {% else %}
+      <span class="badge badge-normal">NORMAL INPUT</span>
+    {% endif %}
+  </div>
+  {% if result.indicators %}
+    <p class="muted small">Detected SQL metacharacters (for labelling only, not used as a defence): {{ result.indicators|join(', ') }}</p>
+  {% endif %}
+
+  <div class="grid grid-2">
+    {% for key, title, cls in [('vuln', 'Vulnerable implementation', 'bad'), ('safe', 'Secure implementation', 'good')] %}
+    {% set r = result[key] %}
+    <div class="result result-{{ cls }}">
+      <h3>{{ title }}</h3>
+      <span class="small muted">Query sent to the database:</span>
+      <pre class="code code-{{ cls }} wrap">{{ r.query }}</pre>
+      {% if key == 'safe' %}<span class="small muted">Bound parameters: <code>{{ result.username }}</code>, <code>&lt;sha256 of password&gt;</code></span>{% endif %}
+      {% if r.error %}
+        <div class="status status-warn">⚠ {{ r.error }}</div>
+      {% elif r.authenticated %}
+        <div class="status {{ 'status-bad' if result.bypass else 'status-ok' }}">
+          {{ '✖ Authentication BYPASSED' if result.bypass else '✔ Login successful' }} &mdash; logged in as
+          <strong>{{ r.user }}</strong> ({{ r.role }})
+        </div>
+        <table class="table small"><thead><tr><th>id</th><th>username</th><th>role</th></tr></thead><tbody>
+          {% for row in r.rows %}<tr><td>{{ row.id }}</td><td>{{ row.username }}</td><td>{{ row.role }}</td></tr>{% endfor %}
+        </tbody></table>
+      {% else %}
+        <div class="status {{ 'status-ok' if key == 'safe' and result.indicators else 'status-neutral' }}">
+          {{ '✔ Injection BLOCKED — input treated as a literal username' if key == 'safe' and result.indicators else 'Login refused — no matching account' }}
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Comparison</h2>
+  <table class="table compare-table">
+    <thead><tr><th>Vulnerable implementation</th><th>Secure implementation</th></tr></thead>
+    <tbody>
+      <tr><td>Unsafe SQL construction (string concatenation / f-strings)</td><td>Parameterised SQL (<code>?</code> placeholders)</td></tr>
+      <tr><td>User input can alter the query structure</td><td>User input is always treated as data</td></tr>
+      <tr><td>Demonstrates SQL Injection (login bypass, UNION data extraction)</td><td>Prevents this injection technique</td></tr>
+      <tr><td>Legitimate names like <code>O'Brien</code> break the query</td><td>Special characters work correctly</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="grid grid-2">
+  <article class="card">
+    <h2>Why the vulnerable version fails</h2>
+    <p>With username <code>' OR '1'='1' --</code> the server builds:</p>
+    <pre class="code code-bad wrap">SELECT id, username, role FROM lab_users WHERE username = '' OR '1'='1' --' AND password_hash = '...'</pre>
+    <ul class="checklist">
+      <li>The first <code>'</code> closes the string literal early.</li>
+      <li><code>OR '1'='1'</code> is always true, so every row matches.</li>
+      <li><code>--</code> turns the password check into a comment.</li>
+      <li>The application logs the attacker in as the first user returned.</li>
+    </ul>
+  </article>
+  <article class="card">
+    <h2>How parameterised queries prevent it</h2>
+    <p>With placeholders, the database <strong>compiles the SQL first</strong> and only afterwards receives the values.
+      The query structure is fixed before the input is seen, so <code>' OR '1'='1' --</code> is simply searched for as
+      a literal username &mdash; which does not exist.</p>
+    <ul class="checklist">
+      <li>Use placeholders for <em>every</em> value, in every query.</li>
+      <li>Never build SQL with <code>+</code>, <code>%</code>, <code>.format()</code> or f-strings.</li>
+      <li>Apply least privilege: the app's DB account should not be able to drop tables.</li>
+      <li>Validate input (type, length, format) as an extra layer &mdash; not as the main defence.</li>
+      <li>Hide database errors from users; log them server-side.</li>
+    </ul>
+  </article>
+</section>
+{% endblock %}

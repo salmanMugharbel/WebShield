@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Security Dashboard{% endblock %}
+{% block content %}
+<section class="hero card">
+  <div>
+    <span class="eyebrow">Educational cybersecurity platform</span>
+    <h1>Understand, exploit &amp; prevent <span class="accent">SQL Injection</span> and <span class="accent">XSS</span></h1>
+    <p class="lead">WebShield shows how two of the most common web vulnerabilities happen, by placing an intentionally
+      vulnerable implementation next to a secure one. Every unsafe example runs against fictional data in an isolated,
+      local sandbox &mdash; the main application stays protected.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{{ url_for('sqli.lab') }}">Open SQL Injection Lab</a>
+      <a class="btn btn-ghost" href="{{ url_for('xss.lab') }}">Open XSS Lab</a>
+    </div>
+  </div>
+</section>
+
+<section class="grid grid-4 stats">
+  <div class="card stat"><span class="stat-label">Registered users</span><span class="stat-value">{{ stats.users }}</span></div>
+  <div class="card stat"><span class="stat-label">Stored comments</span><span class="stat-value">{{ stats.comments }}</span></div>
+  <div class="card stat stat-danger"><span class="stat-label">Exploits demonstrated</span><span class="stat-value">{{ stats.exploited }}</span></div>
+  <div class="card stat stat-ok"><span class="stat-label">Attacks blocked</span><span class="stat-value">{{ stats.blocked }}</span></div>
+</section>
+
+<section class="grid grid-2">
+  <article class="card">
+    <h2><span class="tag tag-blue">SQLi</span> SQL Injection</h2>
+    <p>When an application builds SQL statements by joining strings with user input, an attacker can type SQL syntax
+      that changes the <em>structure</em> of the query &mdash; bypassing logins or reading other data.</p>
+    <pre class="code code-bad">"... WHERE username = '" + username + "'"</pre>
+    <p class="muted">Prevention: parameterised queries, least-privilege DB accounts, validation.</p>
+  </article>
+  <article class="card">
+    <h2><span class="tag tag-cyan">XSS</span> Cross-Site Scripting</h2>
+    <p>When untrusted data is inserted into a page without encoding, the browser interprets it as HTML/JavaScript and
+      runs the attacker's script with the victim's privileges. Three types: <strong>reflected</strong>,
+      <strong>stored</strong> and <strong>DOM-based</strong>.</p>
+    <pre class="code code-bad">element.innerHTML = userInput;</pre>
+    <p class="muted">Prevention: context-aware output encoding, textContent, Content-Security-Policy.</p>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Three-layer architecture</h2>
+  <p class="muted">How a request travels through WebShield. Click <a href="{{ url_for('dashboard.security_comparison') }}">Security Comparison</a> for each layer's responsibilities.</p>
+  {% include "_architecture.html" %}
+</section>
+
+<section>
+  <h2 class="section-title">Security laboratories</h2>
+  <div class="grid grid-3">
+    <a class="card lab-card" href="{{ url_for('sqli.lab') }}">
+      <span class="lab-icon">⛁</span>
+      <h3>SQL Injection Lab</h3>
+      <p>Login bypass with string-built SQL vs. parameterised queries, side by side.</p>
+      <span class="link-arrow">Start lab →</span>
+    </a>
+    <a class="card lab-card" href="{{ url_for('xss.lab') }}">
+      <span class="lab-icon">⟨/⟩</span>
+      <h3>XSS Lab</h3>
+      <p>Reflected, stored and DOM-based XSS in sandboxed iframes vs. encoded output.</p>
+      <span class="link-arrow">Start lab →</span>
+    </a>
+    <a class="card lab-card" href="{{ url_for('dashboard.security_comparison') }}">
+      <span class="lab-icon">⇄</span>
+      <h3>Layer Comparison</h3>
+      <p>What the client, server and database are each responsible for.</p>
+      <span class="link-arrow">Read →</span>
+    </a>
+  </div>
+</section>
+
+<section class="grid grid-2">
+  <article class="card">
+    <div class="card-head">
+      <h2>Recent demonstration activity</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('logs.index') }}">All logs</a>
+    </div>
+    {% if recent %}
+    <ul class="activity">
+      {% for e in recent %}
+      <li>
+        <span class="badge badge-{{ e.security_status|lower }}">{{ e.security_status }}</span>
+        <div>
+          <strong>{{ e.event_type }}</strong> <span class="impl impl-{{ e.implementation }}">{{ e.implementation }}</span>
+          <p>{{ e.description }}</p>
+          <time>{{ e.created_at }} UTC</time>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">No activity yet.</p>{% endif %}
+  </article>
+  <article class="card">
+    <h2>Security recommendations</h2>
+    <ul class="checklist">
+      <li>Use <strong>parameterised queries</strong> for every database call.</li>
+      <li>Encode output for its context (HTML, attribute, URL, JavaScript).</li>
+      <li>Prefer <code>textContent</code> over <code>innerHTML</code> in JavaScript.</li>
+      <li>Validate input on the server &mdash; client checks are only convenience.</li>
+      <li>Hash passwords with a slow, salted algorithm (scrypt, bcrypt, Argon2).</li>
+      <li>Set <code>HttpOnly</code> and <code>SameSite</code> on session cookies.</li>
+      <li>Protect state-changing forms with CSRF tokens.</li>
+      <li>Deploy a Content-Security-Policy as defence in depth.</li>
+      <li>Never show raw database errors or stack traces to users.</li>
+    </ul>
+  </article>
+</section>
+{% endblock %}

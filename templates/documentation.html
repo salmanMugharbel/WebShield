@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Documentation{% endblock %}
+{% block heading %}Educational Documentation{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Module G · Reference</span>
+  <h1>Vulnerability reference</h1>
+  <p class="lead">A structured summary of each vulnerability: definition, mechanism, location, impact, demonstration and
+    prevention. Jump to <a href="#doc-sqli">SQL Injection</a> or <a href="#doc-xss">Cross-Site Scripting</a>.</p>
+</section>
+
+<section class="card doc" id="doc-sqli">
+  <h2><span class="tag tag-blue">SQLi</span> SQL Injection</h2>
+  <dl class="doc-list">
+    <dt>Definition</dt>
+    <dd>An injection flaw in which untrusted input is interpreted as part of a SQL command, allowing an attacker to change
+      the logic of the query sent to the database. It belongs to OWASP Top 10 category A03: Injection.</dd>
+
+    <dt>How it works</dt>
+    <dd>The application concatenates input into SQL text. The database parser cannot tell which part was written by the
+      developer and which came from the user. Quotes close string literals, keywords like <code>OR</code> or
+      <code>UNION</code> add logic, and <code>--</code> comments out the rest.
+      <pre class="code code-bad wrap">SELECT * FROM users WHERE username = '<mark>' OR '1'='1' --</mark>' AND password = '...'</pre></dd>
+
+    <dt>Where it happens</dt>
+    <dd>Any place input reaches a query: login forms, search boxes, URL parameters (<code>?id=5</code>), sorting/filter
+      options, cookies and HTTP headers, and in stored data that is later reused in a query (second-order injection).</dd>
+
+    <dt>Why it is dangerous</dt>
+    <dd>Authentication bypass; reading confidential data (UNION-based or blind extraction); modifying or deleting data;
+      in some database systems, reading files or executing operating-system commands. It directly breaks
+      confidentiality, integrity and availability.</dd>
+
+    <dt>Practical demonstration</dt>
+    <dd>In the <a href="{{ url_for('sqli.lab') }}">SQL Injection Lab</a>, entering <code>lab_admin' --</code> as the username logs into the
+      fictional administrator account on the vulnerable version without a password, while the parameterised version refuses the login.</dd>
+
+    <dt>Prevention techniques</dt>
+    <dd><ul class="checklist">
+      <li><strong>Parameterised queries / prepared statements</strong> (primary defence).</li>
+      <li>ORMs or query builders that parameterise automatically (and care with their "raw SQL" functions).</li>
+      <li>Allow-list validation for values that cannot be parameterised (e.g. column names for sorting).</li>
+      <li>Least-privilege database accounts; separate read and write accounts.</li>
+      <li>Generic error messages; detailed errors only in server logs.</li>
+      <li>Web Application Firewalls as an additional, not primary, layer.</li>
+    </ul></dd>
+
+    <dt>Real-world examples (conceptual)</dt>
+    <dd>SQL Injection has been behind many large data breaches in which attackers extracted millions of customer records
+      from retail, telecom and government websites through a single vulnerable parameter. Automated scanners continuously
+      probe public sites for it, so even small applications are targeted.</dd>
+  </dl>
+</section>
+
+<section class="card doc" id="doc-xss">
+  <h2><span class="tag tag-cyan">XSS</span> Cross-Site Scripting</h2>
+  <dl class="doc-list">
+    <dt>Definition</dt>
+    <dd>An injection flaw in which untrusted data is included in a web page without proper encoding, so the victim's
+      browser executes attacker-controlled script in the context of the trusted site. Also part of OWASP A03: Injection.</dd>
+
+    <dt>How it works</dt>
+    <dd>The browser cannot distinguish the site's own scripts from injected ones on the same origin. Injected
+      <code>&lt;script&gt;</code> tags, event handlers (<code>onerror</code>, <code>onload</code>) or
+      <code>javascript:</code> URLs run with the page's privileges.
+      <ul class="checklist">
+        <li><strong>Reflected:</strong> the payload is in the request (usually a URL) and echoed in the response. The victim is tricked into opening a crafted link.</li>
+        <li><strong>Stored:</strong> the payload is saved (comment, profile, message) and served to every user who views it.</li>
+        <li><strong>DOM-based:</strong> client-side JavaScript reads a source (<code>location.hash</code>, <code>postMessage</code>) and writes it to a dangerous sink (<code>innerHTML</code>, <code>eval</code>); the server may never see the payload.</li>
+      </ul></dd>
+
+    <dt>Where it happens</dt>
+    <dd>Search result pages, error messages, comment sections, user profiles, chat applications, admin panels that
+      display user data, and front-end code that builds HTML from strings.</dd>
+
+    <dt>Why it is dangerous</dt>
+    <dd>The script acts as the victim: it can read page content, perform actions (change e-mail, post content), steal
+      non-HttpOnly session cookies, show fake login forms (phishing on a trusted domain), log keystrokes or spread itself
+      as a worm through stored content.</dd>
+
+    <dt>Practical demonstration</dt>
+    <dd>In the <a href="{{ url_for('xss.lab') }}">XSS Lab</a>, posting <code>&lt;img src=x onerror="alert('XSS')"&gt;</code>
+      triggers an alert in the sandboxed vulnerable panel, while the secure panel shows the exact characters as text.</dd>
+
+    <dt>Prevention techniques</dt>
+    <dd><ul class="checklist">
+      <li><strong>Context-aware output encoding</strong> (HTML body, attribute, URL, JavaScript, CSS each need different encoding).</li>
+      <li>Keep template auto-escaping on; avoid <code>|safe</code>, <code>Markup()</code> and <code>innerHTML</code> for untrusted data.</li>
+      <li>Use safe DOM APIs: <code>textContent</code>, <code>setAttribute</code>, <code>createElement</code>.</li>
+      <li>If rich HTML is required, sanitise with a maintained allow-list sanitiser.</li>
+      <li><strong>Content-Security-Policy</strong> that forbids inline scripts (defence in depth).</li>
+      <li><code>HttpOnly</code> session cookies to limit impact; validate input length and format.</li>
+    </ul></dd>
+
+    <dt>Real-world examples (conceptual)</dt>
+    <dd>Stored XSS worms on social networks have spread to over a million profiles in hours by copying themselves into each
+      viewer's profile. Reflected XSS in login or search pages of well-known sites has been used to hijack sessions
+      and run convincing phishing pages on legitimate domains.</dd>
+  </dl>
+</section>
+{% endblock %}

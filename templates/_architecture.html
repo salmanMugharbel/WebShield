@@ -1,0 +1,52 @@
+<svg class="arch-svg" viewBox="0 0 960 300" role="img" aria-labelledby="arch-title arch-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="arch-title">WebShield three-layer architecture</title>
+  <desc id="arch-desc">The browser sends HTTP requests to the Flask server, which validates input and queries SQLite with parameterised SQL. Data returns through output encoding to the browser.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+  </defs>
+
+  <!-- Layer 1 -->
+  <rect x="10" y="40" width="260" height="220" rx="14" fill="#101b33" stroke="#3b82f6" stroke-width="2"/>
+  <text x="140" y="72" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="700">LAYER 1 · CLIENT</text>
+  <text x="140" y="96" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Browser</text>
+  <text x="30" y="128" fill="#cbd5e1" font-size="13">• HTML / CSS / JavaScript UI</text>
+  <text x="30" y="152" fill="#cbd5e1" font-size="13">• Forms (login, search, comment)</text>
+  <text x="30" y="176" fill="#cbd5e1" font-size="13">• Safe DOM APIs (textContent)</text>
+  <text x="30" y="200" fill="#cbd5e1" font-size="13">• CSP blocks inline scripts</text>
+  <text x="30" y="224" fill="#cbd5e1" font-size="13">• Sandboxed iframes for demos</text>
+
+  <!-- Layer 2 -->
+  <rect x="350" y="40" width="260" height="220" rx="14" fill="#101b33" stroke="#22d3ee" stroke-width="2"/>
+  <text x="480" y="72" text-anchor="middle" fill="#67e8f9" font-size="13" font-weight="700">LAYER 2 · SERVER</text>
+  <text x="480" y="96" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Flask (Python)</text>
+  <text x="370" y="128" fill="#cbd5e1" font-size="13">• Routing &amp; sessions</text>
+  <text x="370" y="152" fill="#cbd5e1" font-size="13">• CSRF token check</text>
+  <text x="370" y="176" fill="#cbd5e1" font-size="13">• Server-side validation</text>
+  <text x="370" y="200" fill="#cbd5e1" font-size="13">• Password hashing (scrypt)</text>
+  <text x="370" y="224" fill="#cbd5e1" font-size="13">• Jinja2 output encoding</text>
+
+  <!-- Layer 3 -->
+  <rect x="690" y="40" width="260" height="220" rx="14" fill="#101b33" stroke="#10b981" stroke-width="2"/>
+  <text x="820" y="72" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="700">LAYER 3 · DATABASE</text>
+  <text x="820" y="96" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">SQLite</text>
+  <text x="710" y="128" fill="#cbd5e1" font-size="13">• users (password_hash)</text>
+  <text x="710" y="152" fill="#cbd5e1" font-size="13">• posts · comments</text>
+  <text x="710" y="176" fill="#cbd5e1" font-size="13">• activity_logs</text>
+  <text x="710" y="200" fill="#cbd5e1" font-size="13">• PK / FK / CHECK constraints</text>
+  <text x="710" y="224" fill="#cbd5e1" font-size="13">• Parameterised queries only</text>
+
+  <!-- Arrows -->
+  <line x1="272" y1="120" x2="346" y2="120" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="309" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">HTTP request</text>
+  <line x1="346" y1="190" x2="272" y2="190" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="309" y="210" text-anchor="middle" fill="#94a3b8" font-size="11">encoded HTML</text>
+
+  <line x1="612" y1="120" x2="686" y2="120" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="649" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">SQL + params</text>
+  <line x1="686" y1="190" x2="612" y2="190" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="649" y="210" text-anchor="middle" fill="#94a3b8" font-size="11">rows</text>
+
+  <text x="480" y="290" text-anchor="middle" fill="#64748b" font-size="12">Vulnerable demos run in an isolated in-memory DB (SQLi) and opaque-origin sandboxed iframes (XSS).</text>
+</svg>

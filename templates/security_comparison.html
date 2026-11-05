@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Security Comparison{% endblock %}
+{% block heading %}Security Comparison by Layer{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Module E · Defence in depth</span>
+  <h1>Who is responsible for what?</h1>
+  <p class="lead">No single layer can stop SQL Injection and XSS on its own. Each layer adds a control; together they form
+    <strong>defence in depth</strong>. The diagram shows how data travels through WebShield and where each control is applied.</p>
+</section>
+
+<section class="card">
+  <h2>Data flow</h2>
+  {% include "_architecture.html" %}
+  <ol class="flow">
+    <li><span class="flow-n">1</span><div><strong>Browser → Server.</strong> A form is submitted over HTTP with its CSRF token. HTML attributes (<code>maxlength</code>, <code>pattern</code>) give quick feedback.</div></li>
+    <li><span class="flow-n">2</span><div><strong>Server checks.</strong> Flask verifies the CSRF token and session, then validates type, length and format of every field again.</div></li>
+    <li><span class="flow-n">3</span><div><strong>Server → Database.</strong> SQL text with <code>?</code> placeholders is sent together with the values as separate parameters.</div></li>
+    <li><span class="flow-n">4</span><div><strong>Database.</strong> SQLite enforces <code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code> and <code>FOREIGN KEY</code> constraints and returns rows.</div></li>
+    <li><span class="flow-n">5</span><div><strong>Server → Browser.</strong> Jinja2 encodes every value (<code>&lt;</code> → <code>&amp;lt;</code>) and the response carries a strict Content-Security-Policy.</div></li>
+    <li><span class="flow-n">6</span><div><strong>Browser.</strong> JavaScript updates the page with <code>textContent</code>, never <code>innerHTML</code>, for untrusted values.</div></li>
+  </ol>
+</section>
+
+<section class="grid grid-3">
+  <article class="card layer layer-client">
+    <span class="layer-tag">Layer 1</span>
+    <h2>Client-side security</h2>
+    <ul class="checklist">
+      <li><strong>Basic input validation</strong> with <code>required</code>, <code>maxlength</code>, <code>pattern</code> &mdash; for usability.</li>
+      <li><strong>Safe DOM manipulation:</strong> <code>textContent</code>, <code>createElement</code>, <code>setAttribute</code>.</li>
+      <li><strong>Handle user content as text</strong>; never pass it to <code>innerHTML</code>, <code>eval</code> or <code>document.write</code>.</li>
+      <li><strong>Never rely on the browser alone:</strong> anyone can bypass client checks with DevTools, curl or a proxy.</li>
+      <li>Respect the server's Content-Security-Policy (no inline scripts).</li>
+    </ul>
+    <p class="muted small">In WebShield: <code>static/js/main.js</code></p>
+  </article>
+  <article class="card layer layer-server">
+    <span class="layer-tag">Layer 2</span>
+    <h2>Server-side security</h2>
+    <ul class="checklist">
+      <li><strong>Input validation</strong> &mdash; allow-list format and length checks.</li>
+      <li><strong>Authentication</strong> &mdash; salted scrypt password hashes.</li>
+      <li><strong>Authorisation</strong> &mdash; login required for labs; users can delete only their own comments.</li>
+      <li><strong>Parameterised SQL queries</strong> everywhere.</li>
+      <li><strong>Context-aware output encoding</strong> (Jinja2 auto-escape).</li>
+      <li><strong>Secure sessions</strong> &mdash; signed cookie, <code>HttpOnly</code>, <code>SameSite=Strict</code>, 30-min expiry, regenerated on login.</li>
+      <li><strong>CSRF tokens</strong> on every POST form.</li>
+      <li>Generic error pages; debug mode off.</li>
+    </ul>
+    <p class="muted small">In WebShield: <code>routes/</code>, <code>security/</code></p>
+  </article>
+  <article class="card layer layer-db">
+    <span class="layer-tag">Layer 3</span>
+    <h2>Database security</h2>
+    <ul class="checklist">
+      <li><strong>Least privilege</strong> &mdash; the app account should only have the rights it needs (the lab sandbox is read-only via an authorizer).</li>
+      <li><strong>Parameterised queries</strong> &mdash; the database compiles the statement before seeing values.</li>
+      <li><strong>Integrity constraints</strong> &mdash; PK, FK, UNIQUE, NOT NULL, CHECK.</li>
+      <li><strong>Secure password storage</strong> &mdash; only hashes produced by the application layer are stored.</li>
+      <li><strong>Hide database errors</strong> &mdash; error messages reveal table and column names to attackers.</li>
+    </ul>
+    <p class="muted small">In WebShield: <code>database/schema.sql</code></p>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Which control stops which attack?</h2>
+  <table class="table">
+    <thead><tr><th>Control</th><th>Layer</th><th>SQL Injection</th><th>XSS</th></tr></thead>
+    <tbody>
+      <tr><td>Parameterised queries</td><td>Server / DB</td><td><span class="badge badge-blocked">Primary defence</span></td><td>&mdash;</td></tr>
+      <tr><td>Output encoding</td><td>Server</td><td>&mdash;</td><td><span class="badge badge-blocked">Primary defence</span></td></tr>
+      <tr><td>Safe DOM APIs (textContent)</td><td>Client</td><td>&mdash;</td><td><span class="badge badge-blocked">Primary (DOM XSS)</span></td></tr>
+      <tr><td>Server-side validation</td><td>Server</td><td><span class="badge badge-detected">Supporting</span></td><td><span class="badge badge-detected">Supporting</span></td></tr>
+      <tr><td>Content-Security-Policy</td><td>Client (sent by server)</td><td>&mdash;</td><td><span class="badge badge-detected">Defence in depth</span></td></tr>
+      <tr><td>HttpOnly cookies</td><td>Server</td><td>&mdash;</td><td><span class="badge badge-detected">Limits impact</span></td></tr>
+      <tr><td>Least privilege</td><td>Database</td><td><span class="badge badge-detected">Limits impact</span></td><td>&mdash;</td></tr>
+      <tr><td>Client-side validation</td><td>Client</td><td><span class="badge badge-normal">Usability only</span></td><td><span class="badge badge-normal">Usability only</span></td></tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

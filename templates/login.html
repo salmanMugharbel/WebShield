@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block heading %}Authentication{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <span class="label-secure">SECURE IMPLEMENTATION</span>
+    <h1>Log in</h1>
+    <p class="muted">This is the real login of WebShield. It uses parameterised SQL and salted password hashes.</p>
+    <form method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="username">Username</label>
+      <input class="input" id="username" name="username" value="{{ username }}" maxlength="30" required autocomplete="username">
+      <label for="password">Password</label>
+      <input class="input" id="password" name="password" type="password" maxlength="128" required autocomplete="current-password">
+      <button class="btn btn-primary btn-block" type="submit">Log in</button>
+    </form>
+    <p class="muted small">No account? <a href="{{ url_for('auth.register') }}">Register</a>.
+      Fictional demo account: <code>demo_student</code> / <code>DemoPass123</code></p>
+  </div>
+  <div class="card auth-side">
+    <h2>How this login is protected</h2>
+    <pre class="code code-good">user = db.execute(
+    "SELECT id, username, password_hash "
+    "FROM users WHERE username = ?",
+    (username,)).fetchone()
+
+if user and check_password_hash(
+        user["password_hash"], password):
+    session.clear()      # prevent fixation
+    session["user_id"] = user["id"]</pre>
+    <ul class="checklist">
+      <li>The <code>?</code> placeholder keeps input as data &mdash; it cannot change the SQL.</li>
+      <li>Passwords are compared against a salted scrypt hash, never stored in plaintext.</li>
+      <li>The same error message is shown for unknown users and wrong passwords.</li>
+      <li>The session cookie is <code>HttpOnly</code>, <code>SameSite=Strict</code> and expires after 30 minutes.</li>
+    </ul>
+    <p>Want to see how an <strong>unsafe</strong> login can be bypassed? Log in, then open the
+      <a href="{{ url_for('sqli.lab') }}">SQL Injection Lab</a> &mdash; it uses a separate, isolated test database.</p>
+  </div>
+</div>
+{% endblock %}

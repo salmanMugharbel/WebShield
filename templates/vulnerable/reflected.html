@@ -1,0 +1,12 @@
+<!doctype html>
+{# !!! INTENTIONALLY VULNERABLE TEMPLATE - served only with a CSP "sandbox" header !!! #}
+<html lang="en"><head><meta charset="utf-8"><title>Vulnerable reflected output</title>
+<style>
+  body{margin:0;padding:12px;font:14px/1.5 system-ui,sans-serif;background:#fff7f7;color:#1f2937}
+  .warn{font:700 10px/1 monospace;letter-spacing:.06em;color:#b91c1c;margin-bottom:8px}
+</style></head>
+<body>
+  <div class="warn">SANDBOX · UNSAFE RENDERING · OPAQUE ORIGIN</div>
+  <p>Results for: {{ q|safe }}</p>
+  <p style="color:#6b7280">No posts matched.</p>
+</body></html>

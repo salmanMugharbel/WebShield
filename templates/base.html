@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}WebShield{% endblock %} · WebShield</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/shield.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  {% set ep = request.endpoint or '' %}
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('dashboard.index') }}">
+      <img src="{{ url_for('static', filename='images/shield.svg') }}" alt="" width="32" height="32">
+      <span>Web<strong>Shield</strong></span>
+    </a>
+    <p class="brand-sub">SQLi &amp; XSS Security Lab</p>
+
+    <nav class="nav">
+      <span class="nav-heading">Overview</span>
+      <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if ep == 'dashboard.index' }}"><span class="ico">◧</span>Dashboard</a>
+      <span class="nav-heading">Laboratories</span>
+      <a href="{{ url_for('sqli.lab') }}" class="{{ 'active' if ep.startswith('sqli') }}"><span class="ico">⛁</span>SQL Injection Lab</a>
+      <a href="{{ url_for('xss.lab') }}" class="{{ 'active' if ep.startswith('xss') }}"><span class="ico">⟨/⟩</span>XSS Lab</a>
+      <span class="nav-heading">Learn</span>
+      <a href="{{ url_for('dashboard.security_comparison') }}" class="{{ 'active' if ep == 'dashboard.security_comparison' }}"><span class="ico">⇄</span>Security Comparison</a>
+      <a href="{{ url_for('dashboard.documentation') }}" class="{{ 'active' if ep == 'dashboard.documentation' }}"><span class="ico">☰</span>Documentation</a>
+      <span class="nav-heading">Monitor</span>
+      <a href="{{ url_for('logs.index') }}" class="{{ 'active' if ep.startswith('logs') }}"><span class="ico">≣</span>Activity Logs</a>
+    </nav>
+
+    <div class="sidebar-user">
+      {% if session.user_id %}
+        <div class="user-chip"><span class="dot dot-ok"></span>Signed in as <strong>{{ session.username }}</strong></div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-ghost btn-block" type="submit">Log out</button>
+        </form>
+      {% else %}
+        <a class="btn btn-primary btn-block" href="{{ url_for('auth.login') }}">Log in</a>
+        <a class="btn btn-ghost btn-block" href="{{ url_for('auth.register') }}">Register</a>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Toggle navigation">☰</button>
+      <div class="topbar-title">{% block heading %}{% endblock %}</div>
+      <div class="env-badge"><span class="dot dot-cyan"></span>Local isolated environment · 127.0.0.1</div>
+    </header>
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+      WebShield · Educational project · All demonstrations use fictional data and run locally only.
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

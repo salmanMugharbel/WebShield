@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}XSS Lab{% endblock %}
+{% block heading %}Cross-Site Scripting Laboratory{% endblock %}
+
+{% macro example_buttons(target) %}
+<div class="examples examples-inline">
+  {% for label, payload in examples %}
+    <button type="button" class="example" data-fill-target="{{ target }}" data-fill-value="{{ payload }}"><strong>{{ label }}</strong></button>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Module D · Cross-Site Scripting</span>
+  <h1>Unsafe rendering vs. output encoding</h1>
+  <p class="lead">XSS occurs when untrusted data reaches the browser in a place where it is interpreted as HTML or
+    JavaScript. Each demonstration below renders the same input twice: once <strong>unsafely</strong> inside a
+    sandboxed iframe with an opaque origin (it cannot read WebShield's cookies, DOM or network), and once
+    <strong>safely</strong> in the main application, where it is encoded and shown as plain text.</p>
+  <div class="grid grid-3 mt">
+    <a class="mini-card" href="#reflected"><span class="tag tag-blue">1</span><strong>Reflected XSS</strong><span>Payload in the request is echoed back immediately (e.g. a search term in the URL).</span></a>
+    <a class="mini-card" href="#stored"><span class="tag tag-cyan">2</span><strong>Stored XSS</strong><span>Payload is saved in the database and served to every visitor.</span></a>
+    <a class="mini-card" href="#dom"><span class="tag tag-green">3</span><strong>DOM-based XSS</strong><span>Client-side JavaScript writes untrusted data (e.g. URL fragment) into the DOM.</span></a>
+  </div>
+</section>
+
+<!-- ======================= 1. REFLECTED ======================= -->
+<section class="card" id="reflected">
+  <div class="card-head"><h2><span class="tag tag-blue">1</span> Reflected XSS &mdash; search form</h2>
+    {% if q %}<span class="badge {{ 'badge-exploited' if indicators else 'badge-normal' }}">{{ 'MARKUP DETECTED: ' ~ indicators|join(', ') if indicators else 'NORMAL TEXT' }}</span>{% endif %}
+  </div>
+  <form method="get" action="{{ url_for('xss.lab') }}#reflected" class="inline-form">
+    <input class="input mono" id="search-q" name="q" value="{{ q }}" maxlength="200" placeholder="Search posts..." autocomplete="off" spellcheck="false">
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+  {{ example_buttons('search-q') }}
+
+  <div class="grid grid-2 mt">
+    <div class="panel-bad demo-box">
+      <span class="label-vuln">INTENTIONALLY VULNERABLE · sandboxed</span>
+      <pre class="code code-bad">&lt;p&gt;Results for: {{ '{{' }} q|safe {{ '}}' }}&lt;/p&gt;</pre>
+      {% if q %}
+        <iframe class="sandbox-frame" title="Vulnerable reflected XSS output" sandbox="allow-scripts allow-modals"
+                src="{{ url_for('xss.sandbox_reflected', q=q) }}"></iframe>
+      {% else %}<p class="muted small">Submit a search to see the unsafe rendering.</p>{% endif %}
+    </div>
+    <div class="panel-good demo-box">
+      <span class="label-secure">SECURE IMPLEMENTATION</span>
+      <pre class="code code-good">&lt;p&gt;Results for: {{ '{{' }} q {{ '}}' }}&lt;/p&gt;   ← auto-escaped</pre>
+      {% if q %}
+        <div class="render-box"><p>Results for: <mark>{{ q }}</mark></p><p class="muted small">No posts matched.</p></div>
+        <span class="small muted">Encoded HTML sent to the browser:</span>
+        <pre class="code wrap">{{ q_encoded }}</pre>
+      {% else %}<p class="muted small">Submit a search to see the encoded rendering.</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 2. STORED ======================= -->
+<section class="card" id="stored">
+  <h2><span class="tag tag-cyan">2</span> Stored XSS &mdash; comment system</h2>
+  <p class="muted">Comments are saved in the SQLite <code>comments</code> table with a parameterised INSERT. The database
+    stores exactly what was typed; safety depends on how the comment is <em>rendered</em>.</p>
+  <form method="post" action="{{ url_for('xss.add_comment') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="comment">New comment (max {{ max_comment }} characters)</label>
+    <textarea class="input mono" id="comment" name="comment" rows="3" maxlength="{{ max_comment }}" required spellcheck="false"></textarea>
+    {{ example_buttons('comment') }}
+    <button class="btn btn-primary mt-sm" type="submit">Post comment</button>
+  </form>
+
+  <div class="grid grid-2 mt">
+    <div class="panel-bad demo-box">
+      <span class="label-vuln">INTENTIONALLY VULNERABLE · sandboxed</span>
+      <pre class="code code-bad">{{ '{{' }} comment.comment_content|safe {{ '}}' }}</pre>
+      <iframe class="sandbox-frame sandbox-tall" title="Vulnerable stored XSS output" sandbox="allow-scripts allow-modals"
+              src="{{ url_for('xss.sandbox_stored') }}"></iframe>
+    </div>
+    <div class="panel-good demo-box">
+      <span class="label-secure">SECURE IMPLEMENTATION</span>
+      <pre class="code code-good">{{ '{{' }} comment.comment_content {{ '}}' }}   ← auto-escaped</pre>
+      <ul class="comments">
+        {% for c in comments %}
+          <li>
+            <div class="comment-meta"><strong>{{ c.username }}</strong> · <time>{{ c.created_at }}</time>
+              {% if c.user_id == session.user_id %}
+              <form method="post" action="{{ url_for('xss.delete_comment', comment_id=c.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="link-btn" type="submit">delete</button>
+              </form>
+              {% endif %}
+            </div>
+            <p class="comment-body">{{ c.comment_content }}</p>
+          </li>
+        {% else %}
+          <li class="muted">No comments yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 3. DOM-BASED ======================= -->
+<section class="card" id="dom">
+  <h2><span class="tag tag-green">3</span> DOM-based XSS &mdash; client-side rendering</h2>
+  <p class="muted">The server is not involved: a script reads <code>location.hash</code> and writes it into the page.
+    Note that a <code>&lt;script&gt;</code> tag inserted with <code>innerHTML</code> does <em>not</em> run, but event
+    handlers such as <code>&lt;img onerror&gt;</code> do.</p>
+  <div class="inline-form">
+    <input class="input mono" id="dom-input" maxlength="200" placeholder="Text to place in the URL fragment" autocomplete="off" spellcheck="false">
+    <button class="btn btn-primary" type="button" id="dom-run">Render</button>
+  </div>
+  {{ example_buttons('dom-input') }}
+
+  <div class="grid grid-2 mt">
+    <div class="panel-bad demo-box">
+      <span class="label-vuln">INTENTIONALLY VULNERABLE · sandboxed</span>
+      <pre class="code code-bad">const v = decodeURIComponent(location.hash.slice(1));
+out.innerHTML = "Hello, " + v;</pre>
+      <iframe class="sandbox-frame" id="dom-frame" title="Vulnerable DOM XSS output" sandbox="allow-scripts allow-modals"
+              src="{{ url_for('xss.sandbox_dom') }}"></iframe>
+    </div>
+    <div class="panel-good demo-box">
+      <span class="label-secure">SECURE IMPLEMENTATION</span>
+      <pre class="code code-good">const v = input.value;
+out.textContent = "Hello, " + v;</pre>
+      <div class="render-box"><p id="dom-safe-output" class="muted">Output appears here.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>How to prevent each type</h2>
+  <table class="table">
+    <thead><tr><th>Type</th><th>Where the flaw is</th><th>Prevention</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Reflected</strong></td><td>Server echoes request data into HTML</td><td>Encode output for its context (Jinja2 auto-escaping); validate length/format; CSP.</td></tr>
+      <tr><td><strong>Stored</strong></td><td>Server renders saved data without encoding</td><td>Encode on output (not only on input); never use <code>|safe</code> / <code>Markup()</code> on user data; sanitise with an allow-list library if rich HTML is truly required.</td></tr>
+      <tr><td><strong>DOM-based</strong></td><td>Client JavaScript writes to a dangerous sink</td><td>Use <code>textContent</code>, <code>setAttribute</code>, <code>createElement</code>; avoid <code>innerHTML</code>, <code>document.write</code>, <code>eval</code>; consider Trusted Types.</td></tr>
+      <tr><td><strong>All</strong></td><td>&mdash;</td><td>Content-Security-Policy without <code>'unsafe-inline'</code>, <code>HttpOnly</code> cookies, framework auto-escaping left on.</td></tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+<!doctype html>
+{# !!! INTENTIONALLY VULNERABLE TEMPLATE - served only with a CSP "sandbox" header !!! #}
+<html lang="en"><head><meta charset="utf-8"><title>Vulnerable DOM output</title>
+<style>
+  body{margin:0;padding:12px;font:14px/1.5 system-ui,sans-serif;background:#fff7f7;color:#1f2937}
+  .warn{font:700 10px/1 monospace;letter-spacing:.06em;color:#b91c1c;margin-bottom:8px}
+</style></head>
+<body>
+  <div class="warn">SANDBOX · UNSAFE innerHTML SINK · OPAQUE ORIGIN</div>
+  <p id="out">Waiting for input&hellip;</p>
+  <script>
+    // UNSAFE: untrusted data from the URL fragment is written with innerHTML.
+    function render() {
+      var v = decodeURIComponent(location.hash.slice(1));
+      if (v) { document.getElementById("out").innerHTML = "Hello, " + v; }
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body></html>

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Activity Logs{% endblock %}
+{% block heading %}Security Activity Logs{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <span class="eyebrow">Module F · Monitoring</span>
+      <h1>Demonstration activity</h1>
+      <p class="muted">Each lab run records the demonstration type, implementation and outcome. Passwords, session tokens
+        and raw payloads are <strong>never</strong> logged &mdash; only a classification.</p>
+    </div>
+    <form method="post" action="{{ url_for('logs.clear') }}" data-confirm="Clear the whole activity log?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-danger btn-sm" type="submit">Clear log</button>
+    </form>
+  </div>
+
+  <div class="filters">
+    <a href="{{ url_for('logs.index') }}" class="chip {{ 'chip-active' if not status }}">All</a>
+    {% for s in statuses %}
+      <a href="{{ url_for('logs.index', status=s) }}" class="chip {{ 'chip-active' if status == s }}">{{ s }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="table-wrap">
+    <table class="table logs-table">
+      <thead><tr><th>#</th><th>Date &amp; time (UTC)</th><th>Demonstration</th><th>Implementation</th><th>Result</th><th>Explanation</th></tr></thead>
+      <tbody>
+        {% for e in logs %}
+        <tr>
+          <td class="muted">{{ e.id }}</td>
+          <td class="nowrap">{{ e.created_at }}</td>
+          <td>{{ e.event_type }}</td>
+          <td><span class="impl impl-{{ e.implementation }}">{{ e.implementation }}</span></td>
+          <td><span class="badge badge-{{ e.security_status|lower }}">{{ e.security_status }}</span></td>
+          <td>{{ e.description }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted">No log entries.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small mt">Legend:
+    <span class="badge badge-exploited">EXPLOITED</span> vulnerable code was manipulated ·
+    <span class="badge badge-blocked">BLOCKED</span> secure code neutralised the input ·
+    <span class="badge badge-detected">DETECTED</span> suspicious input, no bypass ·
+    <span class="badge badge-normal">NORMAL</span> ordinary input ·
+    <span class="badge badge-info">INFO</span> system event</p>
+</section>
+{% endblock %}
