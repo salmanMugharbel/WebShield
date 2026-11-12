@@ -23,6 +23,7 @@
       <span class="nav-heading">Laboratories</span>
       <a href="{{ url_for('sqli.lab') }}" class="{{ 'active' if ep.startswith('sqli') }}"><span class="ico">⛁</span>SQL Injection Lab</a>
       <a href="{{ url_for('xss.lab') }}" class="{{ 'active' if ep.startswith('xss') }}"><span class="ico">⟨/⟩</span>XSS Lab</a>
+      <a href="{{ url_for('hashing.lab') }}" class="{{ 'active' if ep.startswith('hashing') }}"><span class="ico">#</span>Hashing Lab</a>
       <span class="nav-heading">Learn</span>
       <a href="{{ url_for('dashboard.security_comparison') }}" class="{{ 'active' if ep == 'dashboard.security_comparison' }}"><span class="ico">⇄</span>Security Comparison</a>
       <a href="{{ url_for('dashboard.documentation') }}" class="{{ 'active' if ep == 'dashboard.documentation' }}"><span class="ico">☰</span>Documentation</a>

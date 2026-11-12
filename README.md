@@ -22,6 +22,7 @@ side by side with a *secure* one.
 | E · Security Comparison | Responsibilities of client / server / database + data-flow diagram | `/security` |
 | F · Activity Logs | Demonstration type, time, implementation, outcome, explanation (filterable) | `/logs/` |
 | G · Documentation | Definition, mechanism, location, danger, demo, prevention, real-world examples | `/docs` |
+| H · Hashing Lab | 11 hash algorithms, avalanche effect, salting, work factor (PBKDF2/scrypt), HMAC integrity, stored-hash structure | `/hashing/` |
 
 ---
 
@@ -99,10 +100,12 @@ WebShield/
 │   ├── dashboard.py          # dashboard, security comparison, documentation
 │   ├── sqli.py               # SQL Injection lab controller
 │   ├── xss.py                # XSS lab + isolated /xss/sandbox/* pages
+│   ├── hashing.py            # Hashing lab (Module H)
 │   └── logs.py               # activity log viewer
 ├── security/                 # Security logic used by the main app
 │   ├── validation.py         # server-side validation + SQLi indicator detection
-│   ├── password.py           # scrypt hashing (werkzeug)
+│   ├── password.py           # scrypt N=2^17,r=8,p=1 (OWASP) + rehash-on-login
+│   ├── hashing.py            # hash generator, avalanche, salting, work factor, HMAC
 │   ├── safe_rendering.py     # HTML encoding + XSS indicator detection
 │   ├── csrf.py               # synchroniser-token CSRF protection
 │   ├── auth_guard.py         # @login_required
@@ -132,7 +135,7 @@ carries a warning banner.
 | Layer | Technology | Security responsibilities in WebShield |
 |---|---|---|
 | **1 · Client** | HTML5, CSS3, JavaScript | UI and forms; HTML `maxlength`/`pattern` for usability; `textContent` for untrusted data; strict CSP forbids inline scripts; unsafe demos only in `<iframe sandbox>` |
-| **2 · Server** | Python 3, Flask | Routing, sessions (`HttpOnly`, `SameSite=Strict`, 30 min, regenerated at login), CSRF tokens, server-side validation, scrypt hashing, authorisation, parameterised SQL, Jinja2 output encoding, generic error pages, debug off, binds to 127.0.0.1 |
+| **2 · Server** | Python 3, Flask | Routing, sessions (`HttpOnly`, `SameSite=Strict`, 30 min, regenerated at login), CSRF tokens, server-side validation, scrypt hashing (N=2^17, r=8, p=1), authorisation, parameterised SQL, Jinja2 output encoding, generic error pages, debug off, binds to 127.0.0.1 |
 | **3 · Database** | SQLite | Relational schema with PK/FK/UNIQUE/NOT NULL/CHECK; stores only password hashes; SQLi lab uses a separate read-only in-memory DB |
 
 Request flow: browser → (HTTP + CSRF token) → Flask validates → parameterised SQL → SQLite → rows → Jinja2 encodes
@@ -216,8 +219,8 @@ Example buttons on each lab page fill in these inputs. Every run appears in **Ac
 
 ## 8. Testing summary
 
-`python -m pytest -v` runs **39 automated test cases** (12 authentication, 14 SQL Injection, 13 XSS). All 39 passed on
-the latest run — see [docs/TEST_REPORT.md](docs/TEST_REPORT.md). They cover normal login, invalid login, special
+`python -m pytest -v` runs **55 automated test cases** (12 authentication, 14 SQL Injection, 13 XSS, 16 hashing). All 55
+passed on the latest run — see [docs/TEST_REPORT.md](docs/TEST_REPORT.md). They cover normal login, invalid login, special
 characters, injection strings, vulnerable vs. secure comparison, query-structure verification, normal/HTML/script
 comments, stored, reflected and DOM rendering, CSRF, cookie flags, CSP, authorisation, validation, and logging
 without passwords.
@@ -234,11 +237,16 @@ secure panel showed the payload as text, the main page DOM was unaffected, and `
 | ![](docs/screenshots/09_xss_dom.png) DOM XSS | ![](docs/screenshots/11_activity_logs.png) Activity logs |
 | ![](docs/screenshots/10_security_comparison.png) Layer comparison | ![](docs/screenshots/13_mobile_dashboard.png) Mobile layout |
 
-## 10. Presentation notes
+## 10. Hashing documents
+
+* [docs/Hash_Algorithms_Types_and_Algorithms.docx](docs/Hash_Algorithms_Types_and_Algorithms.docx) – theory: all types of hash function, the algorithms of each type, constructions, attacks and recommendations.
+* [docs/Hashing_in_WebShield_Implementation.docx](docs/Hashing_in_WebShield_Implementation.docx) – how WebShield uses hashing, the Hashing Lab, code and test results.
+
+## 11. Presentation notes
 
 See [docs/PRESENTATION.md](docs/PRESENTATION.md) for a short technical explanation and talking points.
 
-## 11. Known limitations
+## 12. Known limitations
 
 * The built-in SECRET_KEY is regenerated on every restart, which logs everyone out. Set `WEBSHIELD_SECRET_KEY` to keep sessions.
 * `SESSION_COOKIE_SECURE` is `False` because the local server uses HTTP. Set it to `True` behind HTTPS.

@@ -6,7 +6,8 @@
   <span class="eyebrow">Module G · Reference</span>
   <h1>Vulnerability reference</h1>
   <p class="lead">A structured summary of each vulnerability: definition, mechanism, location, impact, demonstration and
-    prevention. Jump to <a href="#doc-sqli">SQL Injection</a> or <a href="#doc-xss">Cross-Site Scripting</a>.</p>
+    prevention. Jump to <a href="#doc-sqli">SQL Injection</a>, <a href="#doc-xss">Cross-Site Scripting</a> or
+    <a href="#doc-hash">Hash algorithms</a>.</p>
 </section>
 
 <section class="card doc" id="doc-sqli">
@@ -96,6 +97,35 @@
     <dd>Stored XSS worms on social networks have spread to over a million profiles in hours by copying themselves into each
       viewer's profile. Reflected XSS in login or search pages of well-known sites has been used to hijack sessions
       and run convincing phishing pages on legitimate domains.</dd>
+  </dl>
+</section>
+
+<section class="card doc" id="doc-hash">
+  <h2><span class="tag tag-green">#</span> Hash algorithms</h2>
+  <dl class="doc-list">
+    <dt>Definition</dt>
+    <dd>A hash function maps data of any size to a fixed-size digest. A cryptographic hash is one-way, collision
+      resistant and shows the avalanche effect.</dd>
+    <dt>Types</dt>
+    <dd><ul class="checklist">
+      <li><strong>Cryptographic hashes:</strong> MD5 and SHA-1 (broken), SHA-2, SHA-3, BLAKE2/BLAKE3, RIPEMD-160.</li>
+      <li><strong>Password hashing functions:</strong> Argon2id, scrypt, bcrypt, PBKDF2 &mdash; salted and deliberately slow.</li>
+      <li><strong>Keyed hashes (MACs):</strong> HMAC, KMAC &mdash; integrity plus authenticity with a secret key.</li>
+      <li><strong>Non-cryptographic hashes:</strong> CRC-32, Adler-32, FNV, MurmurHash, xxHash, SipHash &mdash; checksums and hash tables.</li>
+    </ul></dd>
+    <dt>Where WebShield uses it</dt>
+    <dd>Passwords: scrypt (N=2<sup>17</sup>, r=8, p=1) with a random salt per user. Session cookie: HMAC signature.
+      SQLi sandbox: SHA-256 of the fictional lab passwords.</dd>
+    <dt>Practical demonstration</dt>
+    <dd>The <a href="{{ url_for('hashing.lab') }}">Hashing Lab</a> computes 11 algorithms, shows the avalanche effect, salting,
+      the work factor of password hashes and HMAC tamper detection.</dd>
+    <dt>Prevention / good practice</dt>
+    <dd><ul class="checklist">
+      <li>Never store passwords in plaintext or with fast hashes (MD5, SHA-1, plain SHA-256).</li>
+      <li>Use Argon2id or scrypt with OWASP parameters; a unique random salt per password.</li>
+      <li>Use HMAC, not <code>hash(key + message)</code>, for message authentication.</li>
+      <li>Compare digests with a constant-time function such as <code>hmac.compare_digest()</code>.</li>
+    </ul></dd>
   </dl>
 </section>
 {% endblock %}

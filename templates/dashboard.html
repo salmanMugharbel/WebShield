@@ -49,7 +49,13 @@
 
 <section>
   <h2 class="section-title">Security laboratories</h2>
-  <div class="grid grid-3">
+  <div class="grid grid-4">
+    <a class="card lab-card" href="{{ url_for('hashing.lab') }}">
+      <span class="lab-icon">#</span>
+      <h3>Hashing Lab</h3>
+      <p>11 hash algorithms, avalanche effect, salting, work factor and HMAC integrity.</p>
+      <span class="link-arrow">Start lab →</span>
+    </a>
     <a class="card lab-card" href="{{ url_for('sqli.lab') }}">
       <span class="lab-icon">⛁</span>
       <h3>SQL Injection Lab</h3>

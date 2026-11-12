@@ -93,6 +93,26 @@ def main():
         main_cookie_visible = page.evaluate("document.cookie")
         main_intact = page.locator("#dom-safe-output").count() == 1
 
+        # Hashing lab (Module H)
+        def section(sel, name):
+            page.evaluate("document.querySelector('.topbar').style.display='none'")
+            page.locator(sel).screenshot(path=os.path.join(OUT, name))
+            print("saved", name)
+
+        page.goto(BASE + "/hashing/?text=Hello%20WebShield&a=WebShield&b=WebShielD")
+        section("#generator", "14_hash_generator.png")
+        section("#avalanche", "15_hash_avalanche.png")
+        page.click("#salting button[type=submit]")
+        page.wait_for_load_state()
+        section("#salting", "16_hash_salting.png")
+        page.click("#cost button[type=submit]")
+        page.wait_for_load_state()
+        section("#cost", "17_hash_cost.png")
+        page.click("#hmac button[type=submit]")
+        page.wait_for_load_state()
+        section("#hmac", "18_hash_hmac.png")
+        section("section.grid:last-of-type", "19_hash_storage.png")
+
         page.goto(BASE + "/security")
         shot(page, "10_security_comparison.png")
         page.goto(BASE + "/logs/")

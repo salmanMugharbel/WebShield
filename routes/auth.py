@@ -12,7 +12,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from database.db import get_db
 from security.logger import log_event
-from security.password import hash_password, verify_password
+from security.password import hash_password, needs_rehash, verify_password
 from security.validation import validate_password, validate_username
 
 bp = Blueprint("auth", __name__)
@@ -71,6 +71,15 @@ def login():
             ).fetchone()
 
         if user and verify_password(user["password_hash"], password):
+            # Transparent upgrade: re-hash with current parameters while the
+            # plaintext is available (only possible right after a correct login).
+            if needs_rehash(user["password_hash"]):
+                db = get_db()
+                db.execute("UPDATE users SET password_hash = ? WHERE id = ?",
+                           (hash_password(password), user["id"]))
+                db.commit()
+                log_event("Hashing", "Stored password hash upgraded to current scrypt parameters.",
+                          "INFO", "secure")
             next_url = _safe_next(request.args.get("next"))
             session.clear()                 # new session => no fixation
             session.permanent = True

@@ -259,3 +259,15 @@ form.inline { display: inline; }
 @media (max-width: 480px) {
   .grid-4 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Hashing lab ---------- */
+.hex { display: block; font-family: var(--mono); font-size: .78rem; word-break: break-all; white-space: normal; margin: .2rem 0 .5rem; }
+.hash-table td:last-child { min-width: 260px; }
+.badge-hash-broken { color: #fca5a5; background: rgba(239, 68, 68, .14); border-color: rgba(239, 68, 68, .45); }
+.badge-hash-secure { color: #6ee7b7; background: rgba(16, 185, 129, .14); border-color: rgba(16, 185, 129, .45); }
+.badge-hash-not-crypto { color: #fcd34d; background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .45); }
+.hexrow { font-family: var(--mono); font-size: .85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1px; margin: .3rem 0; }
+.hexrow .muted { width: 1.4rem; }
+.hc { display: inline-block; width: .8em; text-align: center; color: var(--muted); }
+.hc-diff { color: #0a1020; background: var(--cyan); border-radius: 2px; }
+.table th[scope], .card .table tbody th { text-align: left; color: var(--muted); width: 32%; text-transform: none; letter-spacing: 0; font-size: .85rem; }

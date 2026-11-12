@@ -1,14 +1,14 @@
 # WebShield - Test Execution Report
 
-Generated automatically by `pytest` on 2026-11-05 16:30:22.
+Generated automatically by `pytest` on 2026-11-13 02:52:36.
 Every row below comes from an actual test execution (see `tests/conftest.py`).
 
-**Result: 39 / 39 test cases passed.**
+**Result: 55 / 55 test cases passed.**
 
 | Test ID | Input | Expected result | Actual result | Status |
 |---|---|---|---|---|
 | AUTH-01 | `register alice_test / Secret123, then log in` | 302 redirect to dashboard, session created | register 302, login redirect, user_id in session=True | **PASS** |
-| AUTH-02 | `register bob_test / Secret123` | users.password_hash is a salted hash, not plaintext | stored value starts with 'scrypt:32768:8:1', plaintext present=False | **PASS** |
+| AUTH-02 | `register bob_test / Secret123` | users.password_hash is a salted hash, not plaintext | stored value starts with 'scrypt:131072:8:1', plaintext present=False | **PASS** |
 | AUTH-03 | `demo_student / WrongPass1` | 401, generic 'Invalid username or password' | 401, generic message shown=True | **PASS** |
 | AUTH-04 | `nobody_here / Whatever1` | 401 with the same generic message (no user enumeration) | 401, generic message shown=True | **PASS** |
 | AUTH-05 | `username: ' OR '1'='1' --  password: x` | Login refused (main app uses parameterised SQL) | 401, session user_id=None | **PASS** |
@@ -19,6 +19,22 @@ Every row below comes from an actual test execution (see `tests/conftest.py`).
 | AUTH-10 | `successful login` | Set-Cookie has HttpOnly and SameSite=Strict | HttpOnly=True, SameSite=Strict=True | **PASS** |
 | AUTH-11 | `GET /does-not-exist` | Generic 404 page, CSP header without unsafe-inline | 404, CSP script-src 'self' only=True, traceback=False | **PASS** |
 | AUTH-12 | `POST /login?next=//evil.example` | Redirect stays on site ('/') | Location=/ | **PASS** |
+| HASH-01 | `abc` | Digests match published test vectors (MD5, SHA-1, SHA-256, SHA3-256) | all match | **PASS** |
+| HASH-02 | `'a' and a 200-character string` | Digest length depends only on the algorithm | 11 algorithms, same length for both inputs=True; SHA-256 bits=256 | **PASS** |
+| HASH-03 | `WebShield hashed twice` | Identical digest both times | equal=True | **PASS** |
+| HASH-04 | `WebShield vs WebShielD` | About half of the 256 SHA-256 bits change (30-70%) | 133 / 256 bits changed (52.0%) | **PASS** |
+| HASH-05 | `Summer2026 hashed for two users` | Unsalted hashes equal; salted hashes differ | unsalted equal=True, salted equal=False | **PASS** |
+| HASH-06 | `register hash_user / Secret123` | Stored as scrypt:131072:8:1 with salt, no plaintext | method=scrypt:131072:8:1, salt length=16, digest bits=512, plaintext present=False | **PASS** |
+| HASH-07 | `log in with an old pbkdf2:sha256:1000 hash` | Hash upgraded to scrypt:131072:8:1 after login | method after login=scrypt:131072:8:1 | **PASS** |
+| HASH-08 | `same message and key` | HMAC tags match | valid=True | **PASS** |
+| HASH-09 | `message changed from 10 to 99 credits` | Tags differ; page reports rejection; log BLOCKED | 200, rejected shown=True, log=['BLOCKED'] | **PASS** |
+| HASH-10 | `one hash per method` | PBKDF2 (600k) and scrypt (N=2^17) far slower than SHA-256 | SHA-256 0.0009 ms, PBKDF2 269.4 ms, scrypt 484.9 ms | **PASS** |
+| HASH-11 | `GET /hashing/?text=abc` | Table lists 11 algorithms with SHA-256 vector; MD5 marked broken | digest cells=12, SHA-256 vector shown=True, broken badge=True | **PASS** |
+| HASH-12 | `GET /hashing/ without login` | 302 redirect to /login | 302 -> /login?next=/hashing/ | **PASS** |
+| HASH-13 | `201-character text` | 400, rejected by server-side validation | 400 | **PASS** |
+| HASH-14 | `GET /hashing/ as demo_student` | Hash structure shown; full digest never on the page | method shown=True, full digest present=False, salt present=False | **PASS** |
+| HASH-15 | `POST /hashing/ demo=cost without CSRF token` | 400 Bad Request | 400 | **PASS** |
+| HASH-16 | `hash 'MySecretPhrase42'` | Log records the action, never the hashed text | input in logs=False, hashing logged=True | **PASS** |
 | SQLI-01 | `alice / Wonderland1` | Both implementations log in as alice | vulnerable=alice, secure=alice | **PASS** |
 | SQLI-02 | `alice / wrongpass` | Both implementations refuse the login | vulnerable auth=False, secure auth=False | **PASS** |
 | SQLI-03 | `O'Brien / anything` | Vulnerable: query syntax error; Secure: handled normally (no match) | vulnerable error=True, secure error=None, secure auth=False | **PASS** |

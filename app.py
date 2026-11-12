@@ -37,11 +37,12 @@ def create_app(test_config=None):
     # Blueprints (server-side layer)
     from routes.auth import bp as auth_bp
     from routes.dashboard import bp as dashboard_bp
+    from routes.hashing import bp as hashing_bp
     from routes.logs import bp as logs_bp
     from routes.sqli import bp as sqli_bp
     from routes.xss import bp as xss_bp
 
-    for bp in (dashboard_bp, auth_bp, sqli_bp, xss_bp, logs_bp):
+    for bp in (dashboard_bp, auth_bp, sqli_bp, xss_bp, hashing_bp, logs_bp):
         app.register_blueprint(bp)
 
     @app.before_request

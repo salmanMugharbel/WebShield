@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Hashing Lab{% endblock %}
+{% block heading %}Hashing Laboratory{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Module H · Hash functions</span>
+  <h1>Hash algorithms: integrity, passwords and why the choice matters</h1>
+  <p class="lead">A hash function maps input of any length to a fixed-length output (the <em>digest</em>). It is one-way:
+    you cannot compute the input back from the digest. WebShield uses hashing to store passwords (scrypt), to sign session
+    cookies (HMAC) and in the SQL Injection sandbox (SHA-256). This lab shows the properties that make a hash secure and why
+    passwords need a <strong>salted, slow</strong> hash rather than a fast one.</p>
+  <div class="grid grid-4 mt">
+    <div class="mini-card"><strong>Deterministic</strong><span>The same input always gives the same digest.</span></div>
+    <div class="mini-card"><strong>Pre-image resistant</strong><span>Given a digest, finding an input that produces it is infeasible.</span></div>
+    <div class="mini-card"><strong>Collision resistant</strong><span>Finding two inputs with the same digest is infeasible.</span></div>
+    <div class="mini-card"><strong>Avalanche effect</strong><span>A one-character change flips about half of the output bits.</span></div>
+  </div>
+</section>
+
+<!-- 1. Generator -->
+<section class="card" id="generator">
+  <h2><span class="tag tag-blue">1</span> Hash generator &mdash; 11 algorithms</h2>
+  <form method="get" action="{{ url_for('hashing.lab') }}#generator" class="inline-form">
+    <input class="input mono" id="hash-text" name="text" value="{{ text }}" maxlength="200" placeholder="Text to hash, e.g. Hello WebShield" autocomplete="off" spellcheck="false">
+    <button class="btn btn-primary" type="submit">Hash it</button>
+  </form>
+  {% if hashes %}
+  <div class="table-wrap mt">
+    <table class="table hash-table">
+      <thead><tr><th>Algorithm</th><th>Family</th><th>Bits</th><th>Status</th><th>Digest (hex)</th></tr></thead>
+      <tbody>
+        {% for h in hashes %}
+        <tr>
+          <td><strong>{{ h.label }}</strong><div class="muted small">{{ h.note }}</div></td>
+          <td>{{ h.family }}</td>
+          <td>{{ h.bits }}</td>
+          <td><span class="badge badge-hash-{{ h.status }}">{{ h.status_label }}</span></td>
+          <td><code class="hex">{{ h.hex }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">Output length is fixed for each algorithm, whatever the input length. MD5 and SHA-1 are shown for comparison only.</p>
+  {% else %}
+  <p class="muted small mt">Enter any text to see its digest under every algorithm available in Python's <code>hashlib</code> and <code>zlib</code>.</p>
+  {% endif %}
+</section>
+
+<!-- 2. Avalanche -->
+<section class="card" id="avalanche">
+  <h2><span class="tag tag-cyan">2</span> Avalanche effect &mdash; SHA-256</h2>
+  <form method="get" action="{{ url_for('hashing.lab') }}#avalanche" class="grid grid-2">
+    <div><label for="aval-a">Input A</label><input class="input mono" id="aval-a" name="a" value="{{ a or 'WebShield' }}" maxlength="200" autocomplete="off"></div>
+    <div><label for="aval-b">Input B (change one character)</label><input class="input mono" id="aval-b" name="b" value="{{ b or 'WebShielD' }}" maxlength="200" autocomplete="off"></div>
+    <div><button class="btn btn-primary" type="submit">Compare</button></div>
+  </form>
+  {% if aval %}
+  <div class="mt">
+    <p><span class="badge badge-normal">{{ aval.diff }} of {{ aval.bits }} bits changed ({{ aval.pct }}%)</span></p>
+    <div class="hexrow"><span class="muted small">A</span>{% for c in aval.chars %}<span class="hc {{ '' if c.same else 'hc-diff' }}">{{ c.a }}</span>{% endfor %}</div>
+    <div class="hexrow"><span class="muted small">B</span>{% for c in aval.chars %}<span class="hc {{ '' if c.same else 'hc-diff' }}">{{ c.b }}</span>{% endfor %}</div>
+    <p class="muted small mt-sm">Highlighted hex characters differ. A good hash changes about 50% of bits, so similar inputs give unrelated digests.</p>
+  </div>
+  {% endif %}
+</section>
+
+<!-- 3. Salting -->
+<section class="card" id="salting">
+  <h2><span class="tag tag-green">3</span> Salting &mdash; why identical passwords must not look identical</h2>
+  <form method="post" action="{{ url_for('hashing.lab') }}#salting" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="demo" value="salting">
+    <input class="input mono" name="salt_input" value="{{ salt_input or 'Summer2026' }}" maxlength="200" autocomplete="off">
+    <button class="btn btn-primary" type="submit">Hash twice</button>
+  </form>
+  {% if salting %}
+  <div class="grid grid-2 mt">
+    <div class="panel-bad demo-box">
+      <span class="label-vuln">NO SALT</span>
+      <pre class="code code-bad">sha256(password)</pre>
+      {% for h in salting.unsalted %}<div class="small muted">User {{ loop.index }}</div><code class="hex">{{ h }}</code>{% endfor %}
+      <div class="status status-bad">{{ '✖ Identical hashes: anyone with the database sees these users share a password, and precomputed tables work' if salting.unsalted_equal }}</div>
+    </div>
+    <div class="panel-good demo-box">
+      <span class="label-secure">RANDOM SALT PER USER</span>
+      <pre class="code code-good">sha256(salt + password)</pre>
+      {% for s in salting.salted %}<div class="small muted">User {{ loop.index }} · salt <code>{{ s.salt }}</code></div><code class="hex">{{ s.hash }}</code>{% endfor %}
+      <div class="status status-ok">{{ '✔ Different hashes for the same password' if not salting.salted_equal }}</div>
+    </div>
+  </div>
+  <p class="muted small">The salt is random, not secret, and is stored next to the hash. A salt alone is not enough: the hash must also be slow (next section).</p>
+  {% endif %}
+</section>
+
+<!-- 4. Cost -->
+<section class="card" id="cost">
+  <h2><span class="tag tag-blue">4</span> Work factor &mdash; fast hashes vs. password-hashing functions</h2>
+  <p class="muted">General-purpose hashes are designed to be fast, which is right for file integrity but wrong for passwords:
+    the faster one hash is, the more guesses per second an attacker with a stolen database can make. Password-hashing
+    functions are deliberately slow and (for scrypt and Argon2) memory-hard.</p>
+  <form method="post" action="{{ url_for('hashing.lab') }}#cost">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="demo" value="cost">
+    <button class="btn btn-primary" type="submit">Measure one hash of each on this computer</button>
+  </form>
+  {% if cost %}
+  <table class="table mt">
+    <thead><tr><th>Method</th><th>Time for one hash</th><th>Hashes per second (one core)</th><th>Suitable for passwords?</th></tr></thead>
+    <tbody>
+      {% for c in cost %}
+      <tr><td>{{ c.label }}</td><td>{{ c.ms }} ms</td><td>{{ "{:,}".format(c.per_second) }}</td>
+        <td>{% if c.speed == 'fast' %}<span class="badge badge-exploited">No – too fast</span>{% else %}<span class="badge badge-blocked">Yes</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Timings are measured live on this machine. A login needs one hash, so ~0.1–0.6 s is acceptable for users but multiplies the cost of every guess.</p>
+  {% endif %}
+</section>
+
+<!-- 5. HMAC -->
+<section class="card" id="hmac">
+  <h2><span class="tag tag-cyan">5</span> Integrity with HMAC-SHA256</h2>
+  <p class="muted">A plain hash proves nothing if an attacker can change both the message and its hash. HMAC mixes a secret
+    key into the hash, so only the key holder can produce a valid tag. Flask signs WebShield's session cookie with HMAC
+    (itsdangerous, HMAC-SHA1 by default &mdash; SHA-1 collisions do not break HMAC).</p>
+  <form method="post" action="{{ url_for('hashing.lab') }}#hmac" class="grid grid-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="demo" value="hmac">
+    <div><label for="hm-msg">Original message</label><input class="input mono" id="hm-msg" name="message" value="{{ message or 'Transfer 10 credits to bob' }}" maxlength="200"></div>
+    <div><label for="hm-recv">Message received (edit to tamper)</label><input class="input mono" id="hm-recv" name="received" value="{{ received or 'Transfer 99 credits to bob' }}" maxlength="200"></div>
+    <div><label for="hm-key">Shared secret key (fictional)</label><input class="input mono" id="hm-key" name="key" value="lab-demo-key" maxlength="200"></div>
+    <div><button class="btn btn-primary" type="submit">Sign and verify</button></div>
+  </form>
+  {% if hmac %}
+  <div class="grid grid-2 mt">
+    <div class="demo-box"><div class="small muted">Tag sent with original</div><code class="hex">{{ hmac.tag }}</code></div>
+    <div class="demo-box"><div class="small muted">Tag recomputed on received message</div><code class="hex">{{ hmac.check }}</code></div>
+  </div>
+  {% if hmac.valid %}<div class="status status-ok">✔ Tags match &mdash; message is authentic and unchanged.</div>
+  {% else %}<div class="status status-bad">✖ Tags differ &mdash; the message was modified, so it is rejected.</div>{% endif %}
+  <p class="muted small">Tags are compared with <code>hmac.compare_digest()</code>, which takes the same time whether the first or last character differs.</p>
+  {% endif %}
+</section>
+
+<!-- 6. Stored hash -->
+<section class="grid grid-2">
+  <article class="card">
+    <h2><span class="tag tag-green">6</span> How WebShield stores your password</h2>
+    <p class="muted">Current method: <code>{{ password_method }}</code> (OWASP minimum for scrypt).</p>
+    {% if stored %}
+    <table class="table">
+      <tbody>
+        <tr><th>Algorithm</th><td>{{ stored.algorithm }}</td></tr>
+        <tr><th>Parameters</th><td>{% if stored.algorithm == 'scrypt' %}N = {{ stored.params[0] }}, r = {{ stored.params[1] }}, p = {{ stored.params[2] }}{% else %}{{ stored.params|join(', ') }}{% endif %}</td></tr>
+        <tr><th>Salt</th><td>{{ stored.salt_len }} random characters, unique to this account</td></tr>
+        <tr><th>Digest</th><td>{{ stored.digest_bits }} bits</td></tr>
+        <tr><th>Stored value</th><td><code class="hex">{{ stored.masked }}</code></td></tr>
+      </tbody>
+    </table>
+    <p class="muted small">The digest is masked on this page. If an account still uses older parameters, the hash is upgraded automatically at the next successful login.</p>
+    {% endif %}
+  </article>
+  <article class="card">
+    <h2>Which hash for which job?</h2>
+    <table class="table">
+      <thead><tr><th>Job</th><th>Use</th><th>Avoid</th></tr></thead>
+      <tbody>
+        <tr><td>Storing passwords</td><td>Argon2id, scrypt, bcrypt, PBKDF2 (FIPS)</td><td>MD5, SHA-1, plain SHA-256</td></tr>
+        <tr><td>File / data integrity</td><td>SHA-256, SHA-3, BLAKE2/3</td><td>MD5, SHA-1, CRC-32</td></tr>
+        <tr><td>Message authentication</td><td>HMAC-SHA256, KMAC</td><td>sha256(key + message)</td></tr>
+        <tr><td>Digital signatures</td><td>SHA-256 or stronger</td><td>MD5, SHA-1</td></tr>
+        <tr><td>Hash tables, checksums</td><td>SipHash, xxHash, CRC-32</td><td>Using them for security</td></tr>
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}
