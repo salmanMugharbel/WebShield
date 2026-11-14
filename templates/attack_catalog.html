@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Attack Catalogue{% endblock %}
+{% block heading %}Attack Catalogue{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Organised view of every attack in WebShield</span>
+  <h1>{{ total }} attacks in {{ groups|length }} categories, each with its defence and tests</h1>
+  <p class="lead">This page organises every attack covered by the project's tasks: SQL Injection, Cross-Site Scripting,
+    session attacks, password and hashing attacks, Trojan horses and denial of service. Each row maps the attack to its
+    OWASP Top 10 (2021) risk, the layer it targets, the defence WebShield implements, the lab where it is demonstrated
+    and the automated tests that verify the defence.</p>
+  <div class="grid grid-4 mt">
+    {% for g in groups %}
+    <a class="mini-card" href="#cat-{{ g.key }}"><strong>{{ g.title }}</strong><span>{{ g.attacks|length }} attacks · {{ g.blurb }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+
+{% for g in groups %}
+<section class="card" id="cat-{{ g.key }}">
+  <div class="card-head">
+    <div><h2>{{ loop.index }}. {{ g.title }}</h2><p class="muted small">{{ g.blurb }}</p></div>
+    <span class="badge badge-info">{{ g.attacks|length }} attacks</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table attack-table">
+      <thead><tr><th>ID</th><th>Attack and how it works</th><th>OWASP</th><th>Layer</th><th>Defence in WebShield</th><th>Lab</th><th>Tests</th></tr></thead>
+      <tbody>
+        {% for a in g.attacks %}
+        <tr>
+          <td><code>{{ a.id }}</code></td>
+          <td><strong>{{ a.name }}</strong><div class="muted small">{{ a.how }}</div></td>
+          <td>{% for c in a.owasp %}<span class="badge badge-normal" title="{{ owasp[c] }}">{{ c }}</span> {% endfor %}</td>
+          <td class="small">{{ a.layer }}</td>
+          <td class="small"><span class="defence">✔ {{ a.defence }}</span></td>
+          <td><a class="btn btn-ghost btn-sm" href="{{ url_for(a.lab) }}">Open</a></td>
+          <td class="small mono-list">{{ a.tests|join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+
+<section class="card">
+  <h2>Coverage by OWASP Top 10 (2021) risk</h2>
+  <table class="table">
+    <thead><tr><th>OWASP risk</th><th>Attacks covered</th></tr></thead>
+    <tbody>{% for name, n in owasp_counts %}<tr><td>{{ name }}</td><td>{{ n }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="muted small">An attack can map to more than one risk, so the counts add up to more than {{ total }}.</p>
+</section>
+{% endblock %}

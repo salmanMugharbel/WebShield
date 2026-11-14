@@ -26,8 +26,11 @@ class Config:
     SESSION_COOKIE_NAME = "webshield_session"
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 
-    # Reject request bodies larger than 64 KB.
-    MAX_CONTENT_LENGTH = 64 * 1024
+    # Reject request bodies larger than 2 MB (uploads are further limited to 1 MB).
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024
+
+    # Trusted SHA-256 baseline of the source files (Trojan horse protection).
+    INTEGRITY_MANIFEST = os.path.join(BASE_DIR, "security", "integrity_manifest.json")
 
     # Never run the debugger in this app: it would expose stack traces.
     DEBUG = False

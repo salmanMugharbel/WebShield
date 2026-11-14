@@ -25,7 +25,8 @@ _RECORDS = {}
 
 @pytest.fixture
 def app(tmp_path):
-    application = create_app({"TESTING": True, "DATABASE": str(tmp_path / "test.db")})
+    application = create_app({"TESTING": True, "DATABASE": str(tmp_path / "test.db"),
+                              "SKIP_INTEGRITY_CHECK": True})
     yield application
 
 

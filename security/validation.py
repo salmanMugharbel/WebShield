@@ -54,6 +54,33 @@ _SQLI_PATTERNS = [
 ]
 
 
+_TECHNIQUES = [
+    # (catalogue id, name, pattern) - checked in this order
+    ("SQLI-T4", "Stacked queries", re.compile(r";\s*\w+", re.I)),
+    ("SQLI-T3", "UNION-based extraction", re.compile(r"\bUNION\b(\s+ALL)?\s+SELECT\b", re.I)),
+    ("SQLI-T1", "Always-true condition (tautology)",
+     re.compile(r"\bOR\b\s*(?:'[^']*'\s*=\s*'[^']*'|\d+\s*=\s*\d+|'?\w+'?\s*(?:LIKE|IS)\b|1\b|TRUE\b)", re.I)),
+    ("SQLI-T6", "Blind (boolean condition)", re.compile(r"'\s*AND\b\s*(?:\d+\s*=\s*\d+|'[^']*'\s*=)", re.I)),
+    ("SQLI-T2", "Comment truncation", re.compile(r"'\s*\)?\s*(--|/\*|#)")),
+]
+
+
+def classify_sqli_technique(*values):
+    """
+    Name the SQL Injection technique(s) an input uses, so the lab and the
+    activity log can organise attempts by technique. Educational labelling
+    only - the defence is still the parameterised query.
+    """
+    text = " ".join(v or "" for v in values)
+    found = [(tid, name) for tid, name, rx in _TECHNIQUES if rx.search(text)]
+    # A comment after a tautology/UNION/stacked query is part of that technique.
+    if len(found) > 1:
+        found = [f for f in found if f[0] != "SQLI-T2"]
+    if not found and text.count("'") % 2 == 1:
+        found.append(("SQLI-T5", "Error-based probing (unbalanced quote)"))
+    return found
+
+
 def detect_sql_injection(*values):
     found = []
     for value in values:

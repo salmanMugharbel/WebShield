@@ -49,7 +49,19 @@
 
 <section>
   <h2 class="section-title">Security laboratories</h2>
-  <div class="grid grid-4">
+  <div class="grid grid-3">
+    <a class="card lab-card" href="{{ url_for('dashboard.attack_catalog') }}">
+      <span class="lab-icon">⚑</span>
+      <h3>Attack Catalogue</h3>
+      <p>All 30 attacks organised by category, OWASP risk, layer, defence and tests.</p>
+      <span class="link-arrow">Browse →</span>
+    </a>
+    <a class="card lab-card" href="{{ url_for('trojan.lab') }}">
+      <span class="lab-icon">⛨</span>
+      <h3>Trojan Horse Defence</h3>
+      <p>8-check upload scanner and SHA-256 source integrity monitor.</p>
+      <span class="link-arrow">Start lab →</span>
+    </a>
     <a class="card lab-card" href="{{ url_for('hashing.lab') }}">
       <span class="lab-icon">#</span>
       <h3>Hashing Lab</h3>

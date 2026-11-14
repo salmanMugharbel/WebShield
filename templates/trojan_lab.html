@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Trojan Horse Defence{% endblock %}
+{% block heading %}Trojan Horse Defence{% endblock %}
+{% block content %}
+<section class="card">
+  <span class="eyebrow">Malware protection · Trojan horse</span>
+  <h1>Stopping malicious code disguised as a harmless file</h1>
+  <p class="lead">A <strong>Trojan horse</strong> is malware that pretends to be something legitimate, such as an invoice, a
+    photo, a document or a software update, so that the victim or the server lets it in. Unlike a virus it does not copy
+    itself; it relies on deception. WebShield protects against Trojans in two places: every <strong>uploaded file</strong>
+    passes eight independent checks, and the <strong>application's own code</strong> is watched by a SHA-256 integrity monitor.</p>
+  <div class="grid grid-4 mt">
+    <div class="mini-card"><strong>Disguised executables</strong><span>holiday.jpg that is really a program; checked by magic bytes.</span></div>
+    <div class="mini-card"><strong>Hidden extensions</strong><span>invoice.pdf.exe and right-to-left override names.</span></div>
+    <div class="mini-card"><strong>Macro documents</strong><span>Word files carrying VBA macros that run when opened.</span></div>
+    <div class="mini-card"><strong>Tampered code</strong><span>Backdoors added to the app itself; caught by the integrity monitor.</span></div>
+  </div>
+</section>
+
+<section class="grid grid-lab" id="scan">
+  <article class="card">
+    <h2><span class="tag tag-blue">1</span> Upload scanner</h2>
+    <p class="muted small">Allowed types: {% for a in allowed %}<code>.{{ a }}</code> {% endfor %}· max {{ (max_upload / 1024)|int }} KB.
+      Files are analysed in memory only: <strong>never stored, served or executed</strong>.</p>
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="scan">
+      <label for="file">Upload your own file</label>
+      <input class="input" id="file" name="file" type="file">
+      <label for="sample">…or choose a built-in harmless sample</label>
+      <select class="input" id="sample" name="sample">
+        <option value="">-- choose a sample --</option>
+        {% for key, (name, data, desc, exp) in samples.items() %}
+        <option value="{{ key }}">{{ desc }} ({{ name.replace('‮', '[RLO]') }}) → expected {{ exp }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary btn-block" type="submit">Scan file</button>
+    </form>
+    <div class="note">All samples are fictional and harmless: the "executables" are only the two letters <code>MZ</code> followed by
+      plain text, and the macro project contains no code.</div>
+  </article>
+
+  <article class="card">
+    <h2>Scan result</h2>
+    {% if result %}
+      <div class="status {{ 'status-ok' if result.verdict == 'ACCEPTED' else 'status-warn' if result.verdict == 'SUSPICIOUS' else 'status-bad' }}">
+        <strong>{{ result.verdict }}</strong> &mdash;
+        {% if result.verdict == 'ACCEPTED' %}would be stored with a random name outside the web root and served only as a download.
+        {% elif result.verdict == 'SUSPICIOUS' %}quarantined for manual review; not accepted.
+        {% else %}rejected; the file was discarded.{% endif %}
+      </div>
+      <table class="table small">
+        <tbody>
+          <tr><th>File name</th><td><code>{{ result.filename }}</code></td></tr>
+          <tr><th>Size</th><td>{{ "{:,}".format(result.size) }} bytes</td></tr>
+          <tr><th>Real content</th><td>{{ result.detected }}</td></tr>
+          <tr><th>SHA-256</th><td><code class="hex">{{ result.sha256 }}</code></td></tr>
+        </tbody>
+      </table>
+      <ul class="scan-checks">
+        {% for c in result.checks %}
+        <li class="chk-{{ c.status }}"><span class="chk-icon">{{ '✔' if c.status == 'pass' else '!' if c.status == 'warn' else '✖' }}</span>
+          <div><strong>{{ loop.index }}. {{ c.rule }}</strong><div class="small">{{ c.detail }}</div></div></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Scan a file to see the eight checks: file name, extension allow-list, hidden extension, size, content
+        signature, macros and containers, embedded code and known-malware hash.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="card" id="history">
+  <h2>Your recent scans</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Time (UTC)</th><th>File name</th><th>Real content</th><th>SHA-256</th><th>Verdict</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for s in scans %}
+        <tr><td class="nowrap small">{{ s.created_at }}</td><td><code>{{ s.filename }}</code></td><td class="small">{{ s.detected_type }}</td>
+          <td><code class="small">{{ s.sha256[:16] }}…</code></td>
+          <td><span class="badge {{ 'badge-blocked' if s.verdict == 'ACCEPTED' else 'badge-detected' if s.verdict == 'SUSPICIOUS' else 'badge-exploited' }}">{{ s.verdict }}</span></td>
+          <td class="small">{{ s.reasons.split('; ')[0] if s.reasons else 'All checks passed' }}</td></tr>
+        {% else %}
+        <tr><td colspan="6" class="muted">No scans yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">Only metadata and the SHA-256 are stored (table <code>file_scans</code>), never the file content.</p>
+</section>
+
+<section class="card" id="integrity">
+  <h2><span class="tag tag-green">2</span> Source code integrity monitor</h2>
+  <p class="muted">A Trojan can also be planted inside the application itself, for example a hidden backdoor added to the login
+    code by an attacker or a compromised update. WebShield stores a trusted SHA-256 baseline of every source file
+    (<code>security/integrity_manifest.json</code>), checks it at every start-up and on demand here. The baseline can only be
+    rebuilt from the command line by the developer, never from the website.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="verify">
+    <button class="btn btn-primary" type="submit">Verify source code now</button>
+  </form>
+  {% if integ %}
+    {% if integ.error %}
+      <div class="status status-warn mt">{{ integ.error }}</div>
+    {% elif integ.ok %}
+      <div class="status status-ok mt">✔ All {{ integ.checked }} source files match the trusted baseline from {{ integ.baseline }}.</div>
+    {% else %}
+      <div class="status status-bad mt">✖ Source code differs from the trusted baseline ({{ integ.baseline }}). Investigate before trusting this server.</div>
+      <table class="table small">
+        <thead><tr><th>Change</th><th>File</th></tr></thead>
+        <tbody>
+          {% for f in integ.modified %}<tr><td><span class="badge badge-exploited">MODIFIED</span></td><td><code>{{ f }}</code></td></tr>{% endfor %}
+          {% for f in integ.missing %}<tr><td><span class="badge badge-detected">MISSING</span></td><td><code>{{ f }}</code></td></tr>{% endfor %}
+          {% for f in integ.added %}<tr><td><span class="badge badge-detected">ADDED</span></td><td><code>{{ f }}</code></td></tr>{% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Defence in depth against Trojan horses</h2>
+  <table class="table">
+    <thead><tr><th>Layer</th><th>Control</th><th>In WebShield</th></tr></thead>
+    <tbody>
+      <tr><td>Client</td><td>User awareness: check real extensions, distrust unexpected attachments</td><td>This lab and the Attack Catalogue</td></tr>
+      <tr><td>Server</td><td>Extension allow-list, magic-byte check, macro and polyglot detection, size limits</td><td>Upload scanner (8 checks)</td></tr>
+      <tr><td>Server</td><td>Known-malware hash blocklist (antivirus signatures in production, e.g. ClamAV)</td><td>SHA-256 blocklist</td></tr>
+      <tr><td>Server</td><td>Never execute or serve uploads inline; random names outside the web root</td><td>Files analysed in memory only</td></tr>
+      <tr><td>Server</td><td>Integrity monitoring of application code</td><td>SHA-256 manifest, start-up check</td></tr>
+      <tr><td>Supply chain</td><td>Pin dependency versions and verify package hashes</td><td><code>requirements-lock.txt</code> with pinned versions</td></tr>
+      <tr><td>Database</td><td>Store only metadata of uploads; least privilege</td><td><code>file_scans</code> table</td></tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

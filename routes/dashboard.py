@@ -31,3 +31,16 @@ def security_comparison():
 @bp.route("/docs")
 def documentation():
     return render_template("documentation.html")
+
+
+@bp.route("/attacks")
+def attack_catalog():
+    from security.attack_catalog import ATTACKS, OWASP, grouped, owasp_counts
+
+    return render_template(
+        "attack_catalog.html",
+        groups=grouped(),
+        owasp=OWASP,
+        owasp_counts=owasp_counts(),
+        total=len(ATTACKS),
+    )

@@ -40,10 +40,25 @@ def create_app(test_config=None):
     from routes.hashing import bp as hashing_bp
     from routes.logs import bp as logs_bp
     from routes.sqli import bp as sqli_bp
+    from routes.trojan import bp as trojan_bp
     from routes.xss import bp as xss_bp
 
-    for bp in (dashboard_bp, auth_bp, sqli_bp, xss_bp, hashing_bp, logs_bp):
+    for bp in (dashboard_bp, auth_bp, sqli_bp, xss_bp, hashing_bp, trojan_bp, logs_bp):
         app.register_blueprint(bp)
+
+    # Trojan horse protection: verify the source code against the trusted
+    # SHA-256 baseline at start-up and record any tampering.
+    if not app.config.get("SKIP_INTEGRITY_CHECK"):
+        from security import integrity
+        from security.logger import log_event
+
+        result = integrity.verify(manifest=app.config["INTEGRITY_MANIFEST"])
+        if result["error"] is None and not result["ok"]:
+            changed = len(result["modified"]) + len(result["missing"]) + len(result["added"])
+            with app.app_context():
+                log_event("Integrity", f"Start-up check: {changed} source file(s) differ from the trusted baseline.",
+                          "DETECTED", "secure")
+            print(f" * WARNING: {changed} source file(s) changed since the integrity baseline")
 
     @app.before_request
     def _csrf():

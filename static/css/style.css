@@ -271,3 +271,25 @@ form.inline { display: inline; }
 .hc { display: inline-block; width: .8em; text-align: center; color: var(--muted); }
 .hc-diff { color: #0a1020; background: var(--cyan); border-radius: 2px; }
 .table th[scope], .card .table tbody th { text-align: left; color: var(--muted); width: 32%; text-transform: none; letter-spacing: 0; font-size: .85rem; }
+
+/* ---------- Attack catalogue / technique groups ---------- */
+.tech-group { margin-top: .8rem; }
+.tech-head { font-size: .8rem; color: var(--muted); margin-bottom: .35rem; }
+.tech-head code { margin-right: .3rem; }
+.attack-table td { vertical-align: top; }
+.attack-table td:nth-child(2) { min-width: 260px; }
+.defence { color: #a7f3d0; }
+.mono-list { font-family: var(--mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- Trojan horse defence ---------- */
+select.input { appearance: auto; }
+input[type=file].input { padding: .45rem; }
+.scan-checks { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .35rem; }
+.scan-checks li { display: flex; gap: .6rem; align-items: flex-start; padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); }
+.chk-icon { width: 1.4rem; height: 1.4rem; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .8rem; }
+.chk-pass .chk-icon { background: rgba(16, 185, 129, .18); color: #6ee7b7; }
+.chk-warn .chk-icon { background: rgba(245, 158, 11, .18); color: #fcd34d; }
+.chk-fail .chk-icon { background: rgba(239, 68, 68, .18); color: #fca5a5; }
+.chk-fail { border-color: rgba(239, 68, 68, .45) !important; }
+.chk-warn { border-color: rgba(245, 158, 11, .45) !important; }
+.attack-table td:first-child, .attack-table td:first-child code, .attack-table .btn { white-space: nowrap; }

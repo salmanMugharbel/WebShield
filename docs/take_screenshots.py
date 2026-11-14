@@ -113,6 +113,54 @@ def main():
         section("#hmac", "18_hash_hmac.png")
         section("section.grid:last-of-type", "19_hash_storage.png")
 
+        # Attack catalogue
+        page.goto(BASE + "/attacks")
+        page.evaluate("document.querySelector('.topbar').style.display=''")
+        shot(page, "20_attack_catalogue.png")
+        section("#cat-malware", "21_catalogue_trojan_rows.png")
+
+        # SQL Injection organised by technique
+        page.goto(BASE + "/sqli/")
+        page.fill("#lab-username", "bob' /*")
+        page.fill("#lab-password", "anything")
+        page.click("#sqli-form button[type=submit]")
+        section("#results", "22_sqli_technique_result.png")
+        section("#techniques", "23_sqli_techniques_table.png")
+        section("section.grid-lab", "24_sqli_inputs_by_technique.png")
+
+        # Trojan horse defence
+        def scan_sample(key, name):
+            page.goto(BASE + "/trojan/")
+            page.select_option("#sample", key)
+            page.click("#scan button[type=submit]")
+            page.wait_for_load_state()
+            section("#scan", name)
+
+        scan_sample("clean_pdf", "25_trojan_clean_pdf.png")
+        scan_sample("disguised", "26_trojan_disguised_exe.png")
+        scan_sample("rtlo", "27_trojan_rtlo.png")
+        scan_sample("macro_docx", "28_trojan_macro_doc.png")
+        scan_sample("polyglot", "29_trojan_polyglot.png")
+        scan_sample("known_bad", "30_trojan_known_hash.png")
+        section("#history", "31_trojan_history.png")
+
+        page.click("#integrity button[type=submit]")
+        page.wait_for_load_state()
+        section("#integrity", "32_integrity_ok.png")
+        # Simulate a Trojan planted in the source, show detection, then restore.
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        target = os.path.join(root, "routes", "auth.py")
+        original = open(target, "rb").read()
+        try:
+            with open(target, "ab") as fh:
+                fh.write(b"\n# simulated Trojan backdoor for the screenshot\n")
+            page.click("#integrity button[type=submit]")
+            page.wait_for_load_state()
+            section("#integrity", "33_integrity_tampered.png")
+        finally:
+            with open(target, "wb") as fh:
+                fh.write(original)
+
         page.goto(BASE + "/security")
         shot(page, "10_security_comparison.png")
         page.goto(BASE + "/logs/")

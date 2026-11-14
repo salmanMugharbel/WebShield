@@ -4,6 +4,7 @@
 
 PRAGMA foreign_keys = ON;
 
+DROP TABLE IF EXISTS file_scans;
 DROP TABLE IF EXISTS activity_logs;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS posts;
@@ -46,6 +47,21 @@ CREATE TABLE activity_logs (
     security_status TEXT NOT NULL
                          CHECK (security_status IN ('EXPLOITED', 'BLOCKED', 'DETECTED', 'NORMAL', 'INFO')),
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Trojan Horse Defence: one row per scanned upload. The file content itself is
+-- never stored - only its metadata, SHA-256 and the scanner verdict.
+CREATE TABLE IF NOT EXISTS file_scans (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL,
+    filename      TEXT    NOT NULL CHECK (length(filename) <= 255),
+    size          INTEGER NOT NULL CHECK (size >= 0),
+    sha256        TEXT    NOT NULL CHECK (length(sha256) = 64),
+    detected_type TEXT    NOT NULL,
+    verdict       TEXT    NOT NULL CHECK (verdict IN ('ACCEPTED', 'SUSPICIOUS', 'BLOCKED')),
+    reasons       TEXT    NOT NULL DEFAULT '',
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_comments_post ON comments (post_id);

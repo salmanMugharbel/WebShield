@@ -1,12 +1,14 @@
 # WebShield - Test Execution Report
 
-Generated automatically by `pytest` on 2026-11-13 02:52:36.
+Generated automatically by `pytest` on 2026-11-14 23:59:47.
 Every row below comes from an actual test execution (see `tests/conftest.py`).
 
-**Result: 55 / 55 test cases passed.**
+**Result: 80 / 80 test cases passed.**
 
 | Test ID | Input | Expected result | Actual result | Status |
 |---|---|---|---|---|
+| ATK-01 | `GET /attacks` | 5 categories and 30 attacks listed, public page | categories=5, attack rows=30 | **PASS** |
+| ATK-02 | `every catalogue entry` | Has a defence, a valid lab link, an OWASP code and only test IDs that exist in the suite | 30 entries checked, problems=[] | **PASS** |
 | AUTH-01 | `register alice_test / Secret123, then log in` | 302 redirect to dashboard, session created | register 302, login redirect, user_id in session=True | **PASS** |
 | AUTH-02 | `register bob_test / Secret123` | users.password_hash is a salted hash, not plaintext | stored value starts with 'scrypt:131072:8:1', plaintext present=False | **PASS** |
 | AUTH-03 | `demo_student / WrongPass1` | 401, generic 'Invalid username or password' | 401, generic message shown=True | **PASS** |
@@ -28,7 +30,7 @@ Every row below comes from an actual test execution (see `tests/conftest.py`).
 | HASH-07 | `log in with an old pbkdf2:sha256:1000 hash` | Hash upgraded to scrypt:131072:8:1 after login | method after login=scrypt:131072:8:1 | **PASS** |
 | HASH-08 | `same message and key` | HMAC tags match | valid=True | **PASS** |
 | HASH-09 | `message changed from 10 to 99 credits` | Tags differ; page reports rejection; log BLOCKED | 200, rejected shown=True, log=['BLOCKED'] | **PASS** |
-| HASH-10 | `one hash per method` | PBKDF2 (600k) and scrypt (N=2^17) far slower than SHA-256 | SHA-256 0.0009 ms, PBKDF2 269.4 ms, scrypt 484.9 ms | **PASS** |
+| HASH-10 | `one hash per method` | PBKDF2 (600k) and scrypt (N=2^17) far slower than SHA-256 | SHA-256 0.0025 ms, PBKDF2 742.9 ms, scrypt 1188.9 ms | **PASS** |
 | HASH-11 | `GET /hashing/?text=abc` | Table lists 11 algorithms with SHA-256 vector; MD5 marked broken | digest cells=12, SHA-256 vector shown=True, broken badge=True | **PASS** |
 | HASH-12 | `GET /hashing/ without login` | 302 redirect to /login | 302 -> /login?next=/hashing/ | **PASS** |
 | HASH-13 | `201-character text` | 400, rejected by server-side validation | 400 | **PASS** |
@@ -49,6 +51,29 @@ Every row below comes from an actual test execution (see `tests/conftest.py`).
 | SQLI-12 | `POST /sqli/ alice / Wonderland1` | Password text never written to activity_logs | password present in logs=False | **PASS** |
 | SQLI-13 | `x' UNION SELECT id, username, password_hash FROM users --` | Fails: main users table is not reachable from the sandbox | authenticated=False, error='The injected input broke the SQL syntax, so the query failed.' | **PASS** |
 | SQLI-14 | `username of 201 characters` | 400, rejected by server-side validation | 400 | **PASS** |
+| SQLI-15 | `' OR '1'='1' --  and  ' OR 1=1 LIMIT 1 OFFSET 2 --` | Classified as SQLI-T1 tautology | ['SQLI-T1'], ['SQLI-T1'] | **PASS** |
+| SQLI-16 | `lab_admin' --  and  bob' /*` | Classified as SQLI-T2 comment truncation | ['SQLI-T2'], ['SQLI-T2'] | **PASS** |
+| SQLI-17 | `x' UNION SELECT id, username, role FROM lab_users --` | Classified as SQLI-T3 UNION | ['SQLI-T3'] | **PASS** |
+| SQLI-18 | `x'; DROP TABLE lab_users; --` | Classified as SQLI-T4 stacked queries | ['SQLI-T4'] | **PASS** |
+| SQLI-19 | `'  /  alice' AND 1=2 --  /  alice  /  Sir Lancelot or knight` | T5, T6, and nothing for normal text | [['SQLI-T5'], ['SQLI-T6'], [], []] | **PASS** |
+| SQLI-20 | `POST /sqli/ username=bob' /*` | Page groups inputs by technique, shows SQLI-T2 badge; log names the technique | technique groups=7, badge=True, log tagged=True | **PASS** |
+| TROJ-01 | `invoice_2026.pdf, profile_photo.png, meeting_notes.txt, course_report.docx` | All four ACCEPTED | {'clean_pdf': 'ACCEPTED', 'clean_png': 'ACCEPTED', 'clean_txt': 'ACCEPTED', 'clean_docx': 'ACCEPTED'} | **PASS** |
+| TROJ-02 | `multipart upload of report.pdf` | ACCEPTED; metadata and SHA-256 saved in file_scans; log NORMAL | 200, row=('report.pdf', 'ACCEPTED', 64), log=('NORMAL',) | **PASS** |
+| TROJ-03 | `invoice.pdf.exe (MZ content)` | BLOCKED: .exe not allowed, double extension, executable content | BLOCKED, failed checks=['Extension allow-list', 'Hidden extension', 'Content signature'] | **PASS** |
+| TROJ-04 | `holiday.jpg whose content starts with MZ` | BLOCKED by content signature (magic bytes) | BLOCKED, detected=Windows executable (MZ/PE header), failed=['Content signature'] | **PASS** |
+| TROJ-05 | `invoice[U+202E]fdp.exe` | BLOCKED; hidden character shown as [U+202E] on the page | BLOCKED, visible name=invoice[U+202E]fdp.exe, page shows marker=True, raw char on page=False | **PASS** |
+| TROJ-06 | `salary_review.docx with vbaProject.bin; report.docm` | Both BLOCKED | docx=BLOCKED (Document contains a VBA macro project (vbaProject.bin).), docm=BLOCKED | **PASS** |
+| TROJ-07 | `free_game.txt (fictional sample on blocklist)` | BLOCKED by known-malware SHA-256 | BLOCKED, reasons=['SHA-256 matches blocklist entry: WebShield.Demo.Trojan (fictional blocklist entry).'] | **PASS** |
+| TROJ-08 | `update.ps1, run.js, setup.bat, macro.vbs, page.html` | All BLOCKED by extension allow-list | {'update.ps1': 'BLOCKED', 'run.js': 'BLOCKED', 'setup.bat': 'BLOCKED', 'macro.vbs': 'BLOCKED', 'page.html': 'BLOCKED'} | **PASS** |
+| TROJ-09 | `avatar.png with appended <script>; statement.pdf with /Launch` | PNG SUSPICIOUS; PDF BLOCKED | png=SUSPICIOUS, pdf=BLOCKED | **PASS** |
+| TROJ-10 | `empty.txt, 1 MB + 1 byte file, 3 MB request` | Empty and oversize BLOCKED; 3 MB request rejected with 413 | empty=BLOCKED, oversize=BLOCKED, 3 MB request status=413 | **PASS** |
+| TROJ-11 | `POST /trojan/ without login; then logged in without CSRF token` | 302 to login; 400 | anonymous=302, no token=400 | **PASS** |
+| TROJ-12 | `upload a file containing a unique marker` | Marker absent from the database; no upload directory created | marker in DB=False, upload dirs=[] | **PASS** |
+| TROJ-13 | `add a backdoor line to routes/auth.py after the baseline` | Verify reports routes/auth.py as MODIFIED | before change ok=True; after: ok=False, modified=['routes/auth.py'] | **PASS** |
+| TROJ-14 | `delete security/csrf.py and add static/js/miner.js` | Verify reports one MISSING and one ADDED file | missing=['security/csrf.py'], added=['static/js/miner.js'] | **PASS** |
+| TROJ-15 | `start the app with a baseline that does not match the code` | Start-up writes an Integrity DETECTED log entry | log=[('DETECTED', 'Start-up check: 48 source file(s) differ from the trusted baseline.')] | **PASS** |
+| TROJ-16 | `upload named <script>alert(1)</script>.txt` | File name shown as encoded text in result and history | raw tag present=False, encoded=True | **PASS** |
+| TROJ-17 | `report.docx expanding to 25 MB of zeros` | BLOCKED as a possible ZIP bomb | compressed=25,739 bytes, verdict=BLOCKED, reason=Archive expands to 26,214,408 bytes in 2 entries (possible ZIP bomb). | **PASS** |
 | XSS-01 | `Hello WebShield` | Saved to DB and displayed unchanged | 302, stored='Hello WebShield', displayed=True | **PASS** |
 | XSS-02 | `<b>bold</b>` | Secure view shows &lt;b&gt;bold&lt;/b&gt; (text, not formatting) | encoded=True, raw tag present=False | **PASS** |
 | XSS-03 | `<script>alert('XSS')</script>` | Secure page: encoded text; vulnerable sandbox page: raw <script> (isolated) | secure encoded=True, sandbox raw=True | **PASS** |

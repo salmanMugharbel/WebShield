@@ -78,8 +78,23 @@ def init_db(path):
         conn.close()
 
 
+def migrate(conn):
+    """Add tables introduced after the first release to an existing database."""
+    with open(SCHEMA_PATH, encoding="utf-8") as fh:
+        sql = fh.read()
+    start = sql.index("CREATE TABLE IF NOT EXISTS file_scans")
+    conn.executescript(sql[start: sql.index(");", start) + 2])
+    conn.commit()
+
+
 def ensure_db(app):
-    """Create the database on first start if it does not exist yet."""
+    """Create the database on first start, or bring an existing one up to date."""
     path = app.config["DATABASE"]
     if not os.path.exists(path):
         init_db(path)
+    else:
+        conn = connect(path)
+        try:
+            migrate(conn)
+        finally:
+            conn.close()

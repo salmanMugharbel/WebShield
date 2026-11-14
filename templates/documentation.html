@@ -7,7 +7,8 @@
   <h1>Vulnerability reference</h1>
   <p class="lead">A structured summary of each vulnerability: definition, mechanism, location, impact, demonstration and
     prevention. Jump to <a href="#doc-sqli">SQL Injection</a>, <a href="#doc-xss">Cross-Site Scripting</a> or
-    <a href="#doc-hash">Hash algorithms</a>.</p>
+    <a href="#doc-hash">Hash algorithms</a> or <a href="#doc-trojan">Trojan horses</a>. All attacks are organised in the
+    <a href="{{ url_for('dashboard.attack_catalog') }}">Attack Catalogue</a>.</p>
 </section>
 
 <section class="card doc" id="doc-sqli">
@@ -125,6 +126,35 @@
       <li>Use Argon2id or scrypt with OWASP parameters; a unique random salt per password.</li>
       <li>Use HMAC, not <code>hash(key + message)</code>, for message authentication.</li>
       <li>Compare digests with a constant-time function such as <code>hmac.compare_digest()</code>.</li>
+    </ul></dd>
+  </dl>
+</section>
+<section class="card doc" id="doc-trojan">
+  <h2><span class="tag tag-blue">⛨</span> Trojan horse</h2>
+  <dl class="doc-list">
+    <dt>Definition</dt>
+    <dd>Malware disguised as a legitimate file or program. It does not replicate like a virus; it relies on the victim or the
+      server trusting it. Once run it can open a backdoor, steal data, download more malware or encrypt files.</dd>
+    <dt>How it works</dt>
+    <dd>Executables renamed as images or documents, double extensions (<code>invoice.pdf.exe</code>), right-to-left override
+      characters, macro-enabled Office documents, scripts posing as updates, polyglot files with hidden code, and tampered
+      application code or dependencies (supply-chain Trojans).</dd>
+    <dt>Where it happens</dt>
+    <dd>File uploads, e-mail attachments, downloads from untrusted sites, pirated software, compromised software updates and
+      third-party packages.</dd>
+    <dt>Why it is dangerous</dt>
+    <dd>It runs with the permissions of the user or server that opens it, so it can bypass the perimeter completely: remote
+      access, credential theft, ransomware, botnets.</dd>
+    <dt>Practical demonstration</dt>
+    <dd>The <a href="{{ url_for('trojan.lab') }}">Trojan Horse Defence</a> lab scans 12 harmless sample files with eight checks and
+      verifies the application's own code against a SHA-256 integrity baseline.</dd>
+    <dt>Prevention techniques</dt>
+    <dd><ul class="checklist">
+      <li>Extension allow-list and magic-byte (content signature) validation.</li>
+      <li>Block macros, scripts and executables; inspect archives and limit sizes.</li>
+      <li>Antivirus / known-malware hash checks; never execute or serve uploads inline.</li>
+      <li>File integrity monitoring of application code; pinned, verified dependencies.</li>
+      <li>Least privilege, application allow-listing and user awareness training.</li>
     </ul></dd>
   </dl>
 </section>

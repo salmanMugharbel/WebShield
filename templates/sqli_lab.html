@@ -46,14 +46,19 @@ conn.execute(query, (username, sha256(password)))</pre>
       <input class="input mono" id="lab-password" name="password" maxlength="200" autocomplete="off" spellcheck="false">
       <button class="btn btn-primary btn-block" type="submit">Run against both implementations</button>
     </form>
-    <h3 class="mt">Safe demonstration inputs</h3>
-    <div class="examples">
-      {% for label, u, p in examples %}
-        <button type="button" class="example" data-fill-username="{{ u }}" data-fill-password="{{ p }}">
-          <strong>{{ label }}</strong><code>{{ u }}</code>
-        </button>
-      {% endfor %}
+    <h3 class="mt">Demonstration inputs, organised by technique</h3>
+    {% for tid, tname, items in example_groups %}
+    <div class="tech-group">
+      <div class="tech-head"><code>{{ tid }}</code> {{ tname }}</div>
+      <div class="examples">
+        {% for label, u, p in items %}
+          <button type="button" class="example" data-fill-username="{{ u }}" data-fill-password="{{ p }}">
+            <strong>{{ label }}</strong><code>{{ u }}</code>
+          </button>
+        {% endfor %}
+      </div>
     </div>
+    {% endfor %}
   </article>
   <article class="card">
     <h2>Fictional test accounts</h2>
@@ -83,6 +88,11 @@ conn.execute(query, (username, sha256(password)))</pre>
       <span class="badge badge-normal">NORMAL INPUT</span>
     {% endif %}
   </div>
+  {% if result.techniques %}
+    <p>Technique detected:
+      {% for tid, tname in result.techniques %}<span class="badge badge-detected">{{ tid }} · {{ tname }}</span> {% endfor %}
+      <a class="small" href="{{ url_for('dashboard.attack_catalog') }}#cat-injection">see Attack Catalogue</a></p>
+  {% endif %}
   {% if result.indicators %}
     <p class="muted small">Detected SQL metacharacters (for labelling only, not used as a defence): {{ result.indicators|join(', ') }}</p>
   {% endif %}
@@ -115,6 +125,23 @@ conn.execute(query, (username, sha256(password)))</pre>
   </div>
 </section>
 {% endif %}
+
+<section class="card" id="techniques">
+  <h2>SQL Injection techniques covered</h2>
+  <p class="muted">Every technique below is stopped by the same defence: the parameterised query. Validation, error hiding
+    and the sandbox limits are extra layers.</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Technique</th><th>How it works</th><th>Defence</th><th>Tests</th></tr></thead>
+      <tbody>
+        {% for t in techniques %}
+        <tr><td><code>{{ t.id }}</code></td><td><strong>{{ t.name.replace('SQL Injection: ', '') }}</strong></td>
+          <td class="small">{{ t.how }}</td><td class="small">{{ t.defence }}</td><td class="small">{{ t.tests|join(', ') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <section class="card">
   <h2>Comparison</h2>

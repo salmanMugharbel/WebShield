@@ -1,9 +1,10 @@
 """SQL Injection laboratory (runs the isolated sandbox in vulnerable/)."""
 from flask import Blueprint, flash, render_template, request
 
+from security.attack_catalog import ATTACKS
 from security.auth_guard import login_required
 from security.logger import log_event
-from security.validation import MAX_LAB_INPUT, detect_sql_injection
+from security.validation import MAX_LAB_INPUT, classify_sqli_technique, detect_sql_injection
 from vulnerable.sqli_sandbox import (
     LAB_ACCOUNTS,
     SECURE_QUERY,
@@ -14,14 +15,39 @@ from vulnerable.sqli_sandbox import (
 
 bp = Blueprint("sqli", __name__, url_prefix="/sqli")
 
-EXAMPLE_INPUTS = [
-    ("Normal login", "alice", "Wonderland1"),
-    ("Wrong password", "alice", "guess123"),
-    ("Always-true condition", "' OR '1'='1' --", "anything"),
-    ("Comment out password check", "lab_admin' --", "anything"),
-    ("UNION query", "x' UNION SELECT 1, sqlite_version(), 'injected' --", "anything"),
-    ("Special characters (legitimate)", "O'Brien", "anything"),
+# Example inputs organised by attack technique (ids match the Attack Catalogue).
+EXAMPLE_GROUPS = [
+    ("NORMAL", "Normal use", [
+        ("Normal login", "alice", "Wonderland1"),
+        ("Wrong password", "alice", "guess123"),
+    ]),
+    ("SQLI-T1", "Always-true condition (tautology)", [
+        ("OR '1'='1'", "' OR '1'='1' --", "anything"),
+        ("OR 1=1 + OFFSET", "' OR 1=1 LIMIT 1 OFFSET 2 --", "anything"),
+    ]),
+    ("SQLI-T2", "Comment truncation", [
+        ("-- comment", "lab_admin' --", "anything"),
+        ("/* comment", "bob' /*", "anything"),
+    ]),
+    ("SQLI-T3", "UNION-based extraction", [
+        ("UNION constant row", "x' UNION SELECT 1, sqlite_version(), 'injected' --", "anything"),
+        ("UNION list users", "x' UNION SELECT id, username, role FROM lab_users --", "anything"),
+    ]),
+    ("SQLI-T4", "Stacked queries", [
+        ("; DROP TABLE", "x'; DROP TABLE lab_users; --", "anything"),
+    ]),
+    ("SQLI-T5", "Error-based probing", [
+        ("Lone quote", "'", "anything"),
+        ("O'Brien (legitimate)", "O'Brien", "anything"),
+    ]),
+    ("SQLI-T6", "Blind (boolean condition)", [
+        ("AND 1=1 (true)", "alice' AND 1=1 --", "anything"),
+        ("AND 1=2 (false)", "alice' AND 1=2 --", "anything"),
+    ]),
 ]
+
+TECHNIQUES = [dict(zip(("id", "name", "category", "owasp", "layer", "how", "defence", "lab", "tests"), a))
+              for a in ATTACKS if a[0].startswith("SQLI-T")]
 
 
 @bp.route("/", methods=["GET", "POST"])
@@ -38,18 +64,20 @@ def lab():
         vuln = vulnerable_login(username, password)
         safe = secure_login(username, password)
         indicators = detect_sql_injection(username, password)
+        techniques = classify_sqli_technique(username, password)
         bypass = vuln["authenticated"] and not safe["authenticated"]
+        tech_text = ", ".join(f"{tid} {name}" for tid, name in techniques) or "no known technique"
 
         # --- activity log (no passwords, no raw payloads) ---
         if bypass:
-            log_event("SQL Injection", "Injected input manipulated the concatenated query and "
+            log_event("SQL Injection", f"[{tech_text}] Injected input manipulated the concatenated query and "
                       f"bypassed login as '{vuln['user'][:30]}'.", "EXPLOITED", "vulnerable")
-            log_event("SQL Injection", "Parameterised query treated the same input as data; "
+            log_event("SQL Injection", f"[{tech_text}] Parameterised query treated the same input as data; "
                       "login refused.", "BLOCKED", "secure")
         elif indicators:
-            log_event("SQL Injection", "Suspicious input detected (" + ", ".join(indicators)
-                      + "); no bypass occurred.", "DETECTED", "vulnerable")
-            log_event("SQL Injection", "Parameterised query handled the input safely.",
+            log_event("SQL Injection", f"[{tech_text}] Suspicious input detected ("
+                      + ", ".join(indicators) + "); no bypass occurred.", "DETECTED", "vulnerable")
+            log_event("SQL Injection", f"[{tech_text}] Parameterised query handled the input safely.",
                       "BLOCKED", "secure")
         else:
             log_event("SQL Injection", "Normal input - both implementations behaved the same.",
@@ -60,6 +88,7 @@ def lab():
             "vuln": vuln,
             "safe": safe,
             "indicators": indicators,
+            "techniques": techniques,
             "bypass": bypass,
         }
     return render_template("sqli_lab.html", result=result, **_ctx())
@@ -68,7 +97,8 @@ def lab():
 def _ctx():
     return {
         "accounts": LAB_ACCOUNTS,
-        "examples": EXAMPLE_INPUTS,
+        "example_groups": EXAMPLE_GROUPS,
+        "techniques": TECHNIQUES,
         "vuln_template": VULNERABLE_TEMPLATE,
         "secure_query": SECURE_QUERY,
     }

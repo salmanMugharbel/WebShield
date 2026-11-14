@@ -23,6 +23,8 @@ side by side with a *secure* one.
 | F · Activity Logs | Demonstration type, time, implementation, outcome, explanation (filterable) | `/logs/` |
 | G · Documentation | Definition, mechanism, location, danger, demo, prevention, real-world examples | `/docs` |
 | H · Hashing Lab | 11 hash algorithms, avalanche effect, salting, work factor (PBKDF2/scrypt), HMAC integrity, stored-hash structure | `/hashing/` |
+| I · Attack Catalogue | All 30 attacks organised in 5 categories with OWASP risk, layer, defence, lab and tests | `/attacks` |
+| J · Trojan Horse Defence | 8-check upload scanner (12 harmless samples) and SHA-256 source integrity monitor | `/trojan/` |
 
 ---
 
@@ -101,11 +103,17 @@ WebShield/
 │   ├── sqli.py               # SQL Injection lab controller
 │   ├── xss.py                # XSS lab + isolated /xss/sandbox/* pages
 │   ├── hashing.py            # Hashing lab (Module H)
+│   ├── trojan.py             # Trojan Horse Defence lab (Module J)
 │   └── logs.py               # activity log viewer
 ├── security/                 # Security logic used by the main app
 │   ├── validation.py         # server-side validation + SQLi indicator detection
 │   ├── password.py           # scrypt N=2^17,r=8,p=1 (OWASP) + rehash-on-login
 │   ├── hashing.py            # hash generator, avalanche, salting, work factor, HMAC
+│   ├── attack_catalog.py     # all attacks organised (Module I)
+│   ├── file_scanner.py       # 8-check Trojan upload scanner
+│   ├── trojan_samples.py     # 12 harmless fictional sample files + demo blocklist
+│   ├── integrity.py          # SHA-256 source integrity monitor (CLI: --build / --verify)
+│   ├── integrity_manifest.json  # trusted baseline
 │   ├── safe_rendering.py     # HTML encoding + XSS indicator detection
 │   ├── csrf.py               # synchroniser-token CSRF protection
 │   ├── auth_guard.py         # @login_required
@@ -219,8 +227,8 @@ Example buttons on each lab page fill in these inputs. Every run appears in **Ac
 
 ## 8. Testing summary
 
-`python -m pytest -v` runs **55 automated test cases** (12 authentication, 14 SQL Injection, 13 XSS, 16 hashing). All 55
-passed on the latest run — see [docs/TEST_REPORT.md](docs/TEST_REPORT.md). They cover normal login, invalid login, special
+`python -m pytest -v` runs **80 automated test cases** (12 authentication, 20 SQL Injection, 13 XSS, 16 hashing,
+2 attack catalogue, 17 Trojan horse). All 80 passed on the latest run — see [docs/TEST_REPORT.md](docs/TEST_REPORT.md). They cover normal login, invalid login, special
 characters, injection strings, vulnerable vs. secure comparison, query-structure verification, normal/HTML/script
 comments, stored, reflected and DOM rendering, CSRF, cookie flags, CSP, authorisation, validation, and logging
 without passwords.
@@ -241,6 +249,19 @@ secure panel showed the payload as text, the main page DOM was unaffected, and `
 
 * [docs/Hash_Algorithms_Types_and_Algorithms.docx](docs/Hash_Algorithms_Types_and_Algorithms.docx) – theory: all types of hash function, the algorithms of each type, constructions, attacks and recommendations.
 * [docs/Hashing_in_WebShield_Implementation.docx](docs/Hashing_in_WebShield_Implementation.docx) – how WebShield uses hashing, the Hashing Lab, code and test results.
+
+### Task 3 – attacks, SQL Injection and Trojan horse protection
+
+* [docs/Attacks_SQLi_and_Trojan_Protection_Report.docx](docs/Attacks_SQLi_and_Trojan_Protection_Report.docx) – report for this task.
+* The SQL Injection lab groups its inputs by technique (T1 tautology, T2 comment truncation, T3 UNION, T4 stacked queries,
+  T5 error-based probing, T6 blind) and logs the technique of every attempt.
+* After any reviewed code change, refresh the integrity baseline:
+
+```bash
+python -m security.integrity --build
+```
+
+* Pinned dependency versions: `pip install -r requirements-lock.txt`.
 
 ## 11. Presentation notes
 
